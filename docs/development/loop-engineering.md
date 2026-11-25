@@ -50,7 +50,7 @@ CodeRabbit の指摘を直したあとのコミットは、CodeRabbit がレビ�
 | `.github/ISSUE_TEMPLATE/task.yml` | issue の項目（背景、要件、完了要件、対象外、依存する issue、参照する設計文書） |
 | `.github/pull_request_template.md` | PR の項目。1行目が `Fixes #` |
 | `.coderabbit.yaml` | `loop:ready` の issue での自動の計画（`issue_enrichment.planning`）、紐づいた issue の評価（`reviews.assess_linked_issues`） |
-| `.claude/settings.json` | ループに要る `gh` と `coderabbit review` の許可。マージ、承認、CLI の課金（`--use-credits`）とログインの拒否。編集ごとの整形と、応答を終える前の検査の hook（[contributing.md の3章](contributing.md)） |
+| `.claude/settings.json` | ループに要る `gh` の許可。マージ、承認、CodeRabbit CLI の課金（`--use-credits`）の拒否。編集ごとの整形と、応答を終える前の検査の hook（[contributing.md の3章](contributing.md)） |
 | `docs/development/frontend-rules.md`、`backend-rules.md` | 実装のときに従う書き方の決まりと、Biome と ruff のルールの意図 |
 
 ## 4. ラベル
