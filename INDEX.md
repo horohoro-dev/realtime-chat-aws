@@ -44,17 +44,17 @@ realtime-chat-aws/
 │   │   └── loop-engineering.md   # issue から PR までを Claude Code に進めさせる仕組み
 │   └── operations/               # （予定）監視、Runbook、ポストモーテム
 │
-├── api/                          # （予定）
+├── api/
 │   └── openapi.yaml              # API 定義。バックエンドが出力し、フロントエンドが型を生成する（make api）
 │
-├── backend/                      # （予定）Django。uv で依存を管理する
-│   ├── pyproject.toml、uv.lock
+├── backend/                      # Django。uv で依存を管理する
+│   ├── pyproject.toml、uv.lock   # 依存と、Ruff と pytest の設定
 │   ├── manage.py
-│   ├── config/settings/          # base.py、local.py、test.py、deployed.py
-│   ├── apps/                     # accounts（Cognito でのログイン）、common（共通の部品）
+│   ├── config/settings/          # base.py、local.py、test.py
+│   ├── apps/                     # （予定）機能ごとの Django のアプリ
 │   └── tests/
 │
-├── frontend/                     # （予定）React、TypeScript、Vite。pnpm で依存を管理する
+├── frontend/                     # React、TypeScript、Vite。pnpm で依存を管理する
 │   ├── package.json              # packageManager で pnpm の版を決める
 │   ├── pnpm-lock.yaml
 │   ├── .nvmrc                    # Node.js の版

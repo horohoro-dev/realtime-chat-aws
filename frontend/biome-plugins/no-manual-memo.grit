@@ -1,0 +1,15 @@
+// useMemo、useCallback、memo を検出する。メモ化は React Compiler がビルド時に入れる。
+// Effect の依存に渡す値を安定させるなど、メモ化を細かく決める必要があるときだけ、理由を書いて抑止する。
+or {
+  `useMemo($...)`,
+  `useCallback($...)`,
+  `memo($...)`,
+  `React.useMemo($...)`,
+  `React.useCallback($...)`,
+  `React.memo($...)`
+} as $call where {
+  register_diagnostic(
+    span = $call,
+    message = "useMemo、useCallback、memo は書きません。メモ化は React Compiler がビルド時に入れます（docs/development/frontend-rules.md の4章）。Effect の依存に渡す値を安定させるなど、どうしても要るときは、理由を書いて biome-ignore で抑止します。"
+  )
+}

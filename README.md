@@ -11,8 +11,9 @@
 
 ## 今の段階
 
-作業計画（[docs/roadmap.md](docs/roadmap.md)）の Step 0（リポジトリの準備）です。リポジトリにあるのは次のものです。
+作業計画（[docs/roadmap.md](docs/roadmap.md)）の Step 1（アプリの最小限）の途中です。リポジトリにあるのは次のものです。
 
+- バックエンド（Django）とフロントエンド（React、Vite）の雛形と、lint の設定（Ruff、Biome、TypeScript）。チャットの機能はまだありません
 - 検査とテストの入口（Makefile）
 - GitHub Actions の CI、Dependabot、issue と PR のテンプレート
 - Claude Code の設定と skill

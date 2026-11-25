@@ -1,0 +1,13 @@
+// useEffect と useLayoutEffect の中での API 呼び出しを検出する。
+// データの取得と更新は src/api/queries/ の TanStack Query のフックで行う。
+`$hook($callback, $...)` where {
+  $hook <: or { `useEffect`, `useLayoutEffect` },
+  $callback <: contains or {
+    `fetch($...)`,
+    `$client.$method($...)` where { $method <: r"GET|POST|PUT|PATCH|DELETE" }
+  },
+  register_diagnostic(
+    span = $hook,
+    message = "Effect の中で API を呼んでいます。データの取得は src/api/queries/ の useQuery、更新は useMutation で行ってください（docs/development/frontend-rules.md の3章）。"
+  )
+}
