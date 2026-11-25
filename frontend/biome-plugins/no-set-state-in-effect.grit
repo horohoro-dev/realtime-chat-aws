@@ -1,0 +1,20 @@
+// useEffect と useLayoutEffect の本体で、state の setter を同期的に呼ぶものを検出する。
+// props や state から計算できる値は描画中に計算し、利用者の操作で決まる値はイベントハンドラで set する。
+// 内側の関数（setInterval やイベントリスナーのコールバック）の中で呼ぶ setter は対象外。
+`$hook($callback, $deps)` where {
+  $hook <: or { `useEffect`, `useLayoutEffect` },
+  $callback <: or { `() => { $body }`, `function () { $body }` },
+  $body <: contains `$setter($args)` where {
+    $setter <: r"set[A-Z]\w*",
+    not $setter <: or { `setTimeout`, `setInterval` }
+  } until or {
+    `($params) => $inner`,
+    `() => $inner`,
+    `function ($params) { $inner }`,
+    `function () { $inner }`
+  },
+  register_diagnostic(
+    span = $hook,
+    message = "Effect の中で state を同期的に set しています。props や state から計算できる値は描画中に計算し、操作で決まる値はイベントハンドラで set してください（docs/development/frontend-rules.md の2章）。外部のシステムとの同期でどうしても要るときは、理由を書いて biome-ignore で抑止します。"
+  )
+}

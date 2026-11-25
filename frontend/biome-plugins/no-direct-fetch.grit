@@ -1,0 +1,8 @@
+// fetch の直接の呼び出しを検出する。src/api/ では biome.json の includes で対象から外す。
+// API は src/api/client.ts の openapi-fetch のクライアントで呼ぶ。CSRF トークンの付与と 503 の扱いがそこにある。
+`fetch($...)` as $call where {
+  register_diagnostic(
+    span = $call,
+    message = "fetch を直接呼んでいます。API は src/api/client.ts のクライアントを、src/api/queries/ のフックから呼んでください。"
+  )
+}
