@@ -12,7 +12,11 @@ function MeStatus() {
   const me = useMe();
 
   if (me.isPending) {
-    return <p className="text-sm text-gray-600">ログインを確かめています…</p>;
+    return (
+      <p role="status" className="text-sm text-gray-600">
+        ログインを確かめています…
+      </p>
+    );
   }
   if (me.isError) {
     return (
