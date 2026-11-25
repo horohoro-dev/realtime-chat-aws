@@ -1,0 +1,91 @@
+[project]
+name = "realtime-chat-aws-backend"
+version = "0.1.0"
+description = "リアルタイムチャットの API（Django）"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "dj-database-url>=3.1.2",
+    "django>=5.2,<5.3",
+    "djangorestframework>=3.18.3",
+    "drf-spectacular>=0.30.0",
+    "psycopg[binary]>=3.3.9",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.2.0",
+    "pytest-django>=4.14.0",
+    "pytest-xdist>=3.8.0",
+    "ruff>=0.17.6",
+]
+
+[tool.ruff]
+target-version = "py313"
+line-length = 100
+
+[tool.ruff.format]
+docstring-code-format = true
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle
+    "W",    # pycodestyle の警告
+    "F",    # Pyflakes
+    "I",    # import の並び
+    "N",    # 命名
+    "UP",   # 新しい書き方への置き換え
+    "B",    # バグになりやすい書き方
+    "A",    # 組み込みの名前の上書き
+    "C4",   # 内包表記
+    "DTZ",  # タイムゾーンのない datetime
+    "DJ",   # Django
+    "T20",  # print
+    "PIE",
+    "PT",   # pytest
+    "RET",  # return
+    "SIM",  # 簡略化
+    "TID",  # import の決まり
+    "ARG",  # 使わない引数
+    "PTH",  # os.path より pathlib
+    "ERA",  # コメントアウトしたコード
+    "PL",   # Pylint
+    "S",    # セキュリティ（bandit）
+    "BLE",  # except Exception の握りつぶし
+    "LOG",  # logging
+    "G",    # logging の書式
+    "RUF",
+]
+ignore = [
+    # 日本語の全角の括弧や句読点を、紛らわしい文字として検出してしまう
+    "RUF001",
+    "RUF002",
+    "RUF003",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = [
+    "S101",     # pytest は assert で検査する
+    "S105",     # テスト用の固定のパスワード
+    "S106",
+    "PLR2004",  # 期待値の数値
+    "ARG001",   # pytest のフィクスチャを引数で受けるだけのもの
+]
+"**/migrations/**" = ["E501", "RUF012"]
+# Django のビュー関数は、使わなくても request を受け取る
+"apps/**/views.py" = ["ARG001"]
+# 手元とテストの設定の SECRET_KEY は、公開してよい固定値
+"config/settings/local.py" = ["S105"]
+"config/settings/test.py" = ["S105"]
+# Django が生成する manage.py の形
+"manage.py" = ["PLC0415"]
+
+[tool.ruff.lint.flake8-tidy-imports]
+ban-relative-imports = "all"
+
+[tool.ruff.lint.pylint]
+max-args = 6
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings.test"
+testpaths = ["tests"]

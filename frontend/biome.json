@@ -1,0 +1,253 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.6.8/schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "files": {
+    "ignoreUnknown": false,
+    "includes": ["**", "!src/api/schema.d.ts", "!**/*.svg", "!biome-plugins"]
+  },
+  "plugins": [
+    "./biome-plugins/no-set-state-in-effect.grit",
+    "./biome-plugins/no-fetch-in-effect.grit",
+    "./biome-plugins/no-manual-memo.grit",
+    {
+      "path": "./biome-plugins/no-direct-fetch.grit",
+      "includes": ["src/**", "!src/api/**"]
+    }
+  ],
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 100
+  },
+  "linter": {
+    "enabled": true,
+    "domains": {
+      "react": "all",
+      "tanstackQuery": "all",
+      "test": "all",
+      "types": "all",
+      "project": "recommended"
+    },
+    "rules": {
+      "preset": "recommended",
+      "correctness": {
+        "noUnusedImports": "error",
+        "noUnusedVariables": "error",
+        "noUnusedFunctionParameters": "error",
+        "noUndeclaredDependencies": "error",
+        "useImportExtensions": "error",
+        "useExhaustiveDependencies": {
+          "level": "error",
+          "options": {
+            "reportUnnecessaryDependencies": true,
+            "reportMissingDependenciesArray": true
+          }
+        },
+        "useHookAtTopLevel": "error",
+        "noNestedComponentDefinitions": "error",
+        "noReactPropAssignments": "error",
+        "useUniqueElementIds": "error"
+      },
+      "suspicious": {
+        "noExplicitAny": "error",
+        "noConsole": { "level": "error", "options": { "allow": ["error"] } },
+        "noTsIgnore": "error",
+        "noEmptyBlockStatements": "error",
+        "noArrayIndexKey": "error",
+        "noReactForwardRef": "error",
+        "noLeakedRender": "error",
+        "noDuplicatedSpreadProps": "error",
+        "noAlert": "error",
+        "noEvolvingTypes": "error",
+        "noUnnecessaryConditions": "error",
+        "noSkippedTests": "error",
+        "noFocusedTests": "error",
+        "useAwait": "error"
+      },
+      "style": {
+        "noDefaultExport": "error",
+        "noNonNullAssertion": "error",
+        "noParameterAssign": "error",
+        "noNestedTernary": "error",
+        "noInferrableTypes": "error",
+        "noUselessElse": "error",
+        "noNamespace": "error",
+        "noEnum": "error",
+        "useBlockStatements": "error",
+        "useCollapsedElseIf": "error",
+        "useConst": "error",
+        "useTemplate": "error",
+        "useImportType": "error",
+        "useExportType": "error",
+        "useFragmentSyntax": "error",
+        "useSelfClosingElements": "error",
+        "useConsistentCurlyBraces": "error",
+        "useConsistentArrayType": { "level": "error", "options": { "syntax": "shorthand" } },
+        "useConsistentTypeDefinitions": { "level": "error", "options": { "style": "type" } },
+        "useReactFunctionComponents": "error",
+        "useComponentExportOnlyModules": {
+          "level": "error",
+          "options": { "allowConstantExport": true }
+        },
+        "useFilenamingConvention": {
+          "level": "error",
+          "options": { "filenameCases": ["camelCase", "PascalCase"], "requireAscii": true }
+        },
+        "noRestrictedImports": {
+          "level": "error",
+          "options": {
+            "paths": {
+              "react": {
+                "importNames": ["default", "*"],
+                "message": "React の名前空間は読み込まず、useState などを名前付きで読み込んでください。JSX の変換は tsconfig の react-jsx が行います。"
+              },
+              "react-aria-components": "React Aria Components は src/components/ の部品からだけ使います。画面とレイアウトでは src/components/ui/ の部品を使ってください。",
+              "openapi-fetch": "openapi-fetch は src/api/client.ts でだけ使います。",
+              "@tanstack/react-query": {
+                "importNames": [
+                  "useQuery",
+                  "useQueries",
+                  "useSuspenseQuery",
+                  "useSuspenseQueries",
+                  "useInfiniteQuery",
+                  "useSuspenseInfiniteQuery",
+                  "useMutation",
+                  "queryOptions",
+                  "infiniteQueryOptions",
+                  "mutationOptions"
+                ],
+                "message": "クエリとミューテーションは src/api/queries/ にフックとして書き、画面からはそのフックを使ってください（docs/development/frontend-rules.md の3章）。"
+              },
+              "react-router-dom": "React Router は react-router から読み込みます。",
+              "@react-aria/toast": "トースト通知は使いません。インラインの Alert かページ遷移を使ってください（CLAUDE.md のフロントエンドUI規約）。",
+              "@react-stately/toast": "トースト通知は使いません。インラインの Alert かページ遷移を使ってください（CLAUDE.md のフロントエンドUI規約）。"
+            }
+          }
+        }
+      },
+      "complexity": {
+        "noExcessiveCognitiveComplexity": {
+          "level": "error",
+          "options": { "maxAllowedComplexity": 15 }
+        },
+        "noUselessFragments": "error",
+        "useSimplifiedLogicExpression": "error"
+      },
+      "nursery": {
+        "noReactDirectStateMutation": "error",
+        "useReactCompiler": "error",
+        "useReactFunctionComponentDefinition": {
+          "level": "error",
+          "options": { "namedComponents": "functionDeclaration" }
+        },
+        "useTanstackQueryStableQueryClient": "error",
+        "noTanstackQueryRestDestructuring": "error",
+        "noTanstackQueryVoidQueryFn": "error",
+        "noFloatingPromises": "error",
+        "noMisusedPromises": "error",
+        "useExhaustiveSwitchCases": "error",
+        "useTailwindSortedClasses": { "level": "error", "fix": "safe" }
+      }
+    }
+  },
+  "overrides": [
+    {
+      "includes": ["src/components/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "paths": {
+                  "react": {
+                    "importNames": ["default", "*"],
+                    "message": "React の名前空間は読み込まず、useState などを名前付きで読み込んでください。JSX の変換は tsconfig の react-jsx が行います。"
+                  },
+                  "openapi-fetch": "openapi-fetch は src/api/client.ts でだけ使います。",
+                  "@tanstack/react-query": {
+                    "importNames": [
+                      "useQuery",
+                      "useQueries",
+                      "useSuspenseQuery",
+                      "useSuspenseQueries",
+                      "useInfiniteQuery",
+                      "useSuspenseInfiniteQuery",
+                      "useMutation",
+                      "queryOptions",
+                      "infiniteQueryOptions",
+                      "mutationOptions"
+                    ],
+                    "message": "クエリとミューテーションは src/api/queries/ にフックとして書き、部品には props でデータを渡してください（docs/development/frontend-rules.md の3章）。"
+                  },
+                  "react-router-dom": "React Router は react-router から読み込みます。",
+                  "@react-aria/toast": "トースト通知は使いません。インラインの Alert かページ遷移を使ってください（CLAUDE.md のフロントエンドUI規約）。",
+                  "@react-stately/toast": "トースト通知は使いません。インラインの Alert かページ遷移を使ってください（CLAUDE.md のフロントエンドUI規約）。"
+                },
+                "patterns": [
+                  {
+                    "group": ["react-aria-components"],
+                    "importNamePattern": ".*Toast.*",
+                    "message": "トースト通知は使いません。インラインの Alert かページ遷移を使ってください（CLAUDE.md のフロントエンドUI規約）。"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["src/api/**"],
+      "linter": {
+        "rules": {
+          "style": {
+            "noRestrictedImports": {
+              "level": "error",
+              "options": {
+                "paths": {
+                  "react": {
+                    "importNames": ["default", "*"],
+                    "message": "React の名前空間は読み込まず、useState などを名前付きで読み込んでください。"
+                  },
+                  "react-aria-components": "src/api/ では UI の部品を使いません。"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "includes": ["vite.config.ts"],
+      "linter": {
+        "rules": {
+          "style": { "noDefaultExport": "off" }
+        }
+      }
+    }
+  ],
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "double"
+    }
+  },
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
+    }
+  },
+  "assist": {
+    "enabled": true,
+    "actions": {
+      "source": {
+        "organizeImports": "on"
+      }
+    }
+  }
+}

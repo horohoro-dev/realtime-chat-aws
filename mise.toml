@@ -1,0 +1,14 @@
+# 開発に使うコマンドの版。リポジトリ直下で mise install を実行すると入る。
+# node と python は、CI が読む frontend/.nvmrc と backend/.python-version と同じ版にする。
+# pnpm は Corepack が frontend/package.json の packageManager の版を入れる（corepack enable）。
+
+[tools]
+node = "26"
+python = "3.13"
+uv = "0.11"
+terraform = "1"
+tflint = "0"
+sops = "3"
+age = "1"
+# CI（.github/workflows/ci.yml）の Trivy と同じ版
+trivy = "0.76.2"
