@@ -1,9 +1,9 @@
 // class の宣言と class 式を検出する。データは type と関数、部品は関数コンポーネントで書く。
+// ノードの種類で選ぶので、型パラメーター、extends、implements、abstract の有無にかかわらず検出する。
 or {
-  `class $name { $body }`,
-  `class $name extends $base { $body }`,
-  `class { $body }`,
-  `class extends $base { $body }`
+  JsClassDeclaration(),
+  JsClassExpression(),
+  JsClassExportDefaultDeclaration()
 } as $class where {
   register_diagnostic(
     span = $class,
