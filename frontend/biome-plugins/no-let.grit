@@ -1,0 +1,9 @@
+// let と var の宣言を検出する。値は const で1回だけ決める。
+// GritQL の正規表現は | を全体の選択として扱わないので、キーワードごとに分けて書く。
+JsVariableDeclaration() as $declaration where {
+  $declaration <: or { r"let\s[\s\S]*", r"var\s[\s\S]*" },
+  register_diagnostic(
+    span = $declaration,
+    message = "let と var は書きません。条件で値が変わるなら三項演算子か関数の return で、集計なら map、filter、reduce で、const に1回で入れてください（docs/development/frontend-rules.md の4.2）。"
+  )
+}
