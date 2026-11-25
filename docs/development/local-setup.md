@@ -5,7 +5,7 @@
 1. 開発に使うコマンドを [mise](https://mise.jdx.dev/) で入れます。
    1. 入れたコマンドを PATH から使えるように、シェルの設定ファイルで mise を有効にします。bash なら `~/.bashrc` に `eval "$(mise activate bash)"`、zsh なら `~/.zshrc` に `eval "$(mise activate zsh)"` を書き、シェルを開き直します。エディタや CI のように対話のシェルを使わないところでは、`~/.local/share/mise/shims` を PATH に足します（[Shims](https://mise.jdx.dev/dev-tools/shims.html)）。
    2. リポジトリ直下で `mise install` を実行すると、`mise.toml` に書いた版の Node.js、Python、uv、Terraform、tflint、SOPS、age、Trivy が入ります。
-   3. pnpm は Corepack で入れます（`corepack enable`）。版は `frontend/package.json` の `packageManager` で決めます。
+   3. pnpm は Corepack で入れます。Node.js 25 からは Corepack が同梱されないので、`npm install -g corepack` で Corepack を入れてから `corepack enable` を実行します。pnpm の版は `frontend/package.json` の `packageManager` で決まります。
 2. リポジトリ直下で `make setup` を実行し、バックエンドとフロントエンドの依存を入れます。
 3. `make db-up` で PostgreSQL を起動します。5432番がほかで使われているときは、`POSTGRES_PORT=5433 make db-up` のようにポートを変え、`DATABASE_URL=postgres://postgres:postgres@localhost:5433/postgres` を環境変数で渡します。
 4. `backend/` で `make migrate`、`make run` を実行します。
