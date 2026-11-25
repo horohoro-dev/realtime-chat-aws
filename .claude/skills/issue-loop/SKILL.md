@@ -115,23 +115,8 @@ gh api "repos/{owner}/{repo}/issues/<番号>/comments" --paginate \
   --jq '.[] | select(.user.login == "coderabbitai[bot]") | {created_at, body}'
 ```
 
-- 「Prompt for AI Agents」を含むコメントがあれば、それが計画。
-- なければ、issue に `@coderabbitai plan` だけを書いたコメントを付ける（`gh issue comment <番号> --body "@coderabbitai plan"`）。ほかの文字を足すと動かない。issue が作られてから15分以内なら、自動の計画が作られている途中のことがあるので、先に待つだけにする。
-- 待つときは、Bash を `run_in_background` で動かし、終わりの通知を待つ。返ってくるまで5〜15分かかる。
-
-```bash
-for i in $(seq 40); do
-  gh api "repos/{owner}/{repo}/issues/<番号>/comments" --paginate \
-    --jq '.[] | select(.user.login == "coderabbitai[bot]") | .body' \
-    | grep -qi "prompt for ai agent" && { echo plan-ready; exit 0; }
-  sleep 30
-done
-echo plan-timeout
-```
-
-20分待っても届かなければ、計画なしで issue の本文と設計文書から進める。
-
-計画の「Prompt for AI Agents」を読み、issue の要件、完了要件、対象外、参照する設計文書と照らして、実装の手順を決める。計画が issue や設計と食い違うところは、issue と設計を優先する。
+- 「Prompt for AI Agents」を含むコメントがあれば、それが計画。計画の「Prompt for AI Agents」を読み、issue の要件、完了要件、対象外、参照する設計文書と照らして、実装の手順を決める。計画が issue や設計と食い違うところは、issue と設計を優先する。
+- なければ、計画を待たずに、issue の本文と参照する設計文書から実装の手順を決めて手順5に進む。`/tasks-to-issues` で作った issue には、要件、完了要件、対象外がすでに書いてあるため。`@coderabbitai plan` のコメントも付けない。
 
 ### 5. 実装する
 
@@ -160,10 +145,16 @@ PR を出す前に、手元の差分を CodeRabbit CLI でレビューし、細�
 2. レビューする。数分かかるので、Bash を `run_in_background` で動かし、終わりの通知を待つ。
 
    ```bash
-   coderabbit review --agent --base develop --context docs/design -c CLAUDE.md .coderabbit.yaml
+   coderabbit review --agent --base develop --context <文書1> --context <文書2> -c CLAUDE.md .coderabbit.yaml
    ```
 
    `--agent` は、指摘を1行に1つの JSON で出す。コミットした変更も、まだコミットしていない変更も対象になる。
+
+   `--context` には、フォルダではなく、その issue に関わる文書をファイルで渡す。`--context` の合計が 16 KiB を超えると、レビューが始まらずに失敗する（`wc -c` で大きさを確かめる）。次の順に選び、16 KiB に収まるところまで入れる。
+   1. issue の「参照する設計文書」にある文書（例：`docs/design/step1-app.md`）
+   2. 変えたコードの書き方の決まり（`docs/development/backend-rules.md`、`docs/development/frontend-rules.md`）
+
+   1つの文書だけで 16 KiB を超えるときは、`--context` を付けずにレビューし、そのことを PR の「人が確認してほしい点」に書く。
 
 3. 指摘ごとに、手順9と同じ基準で正しいかを判断する。採るものは直してコミットする。採らないものは、理由を PR の「人が確認してほしい点」に書く（CLI の指摘は PR に残らないため）。
 
