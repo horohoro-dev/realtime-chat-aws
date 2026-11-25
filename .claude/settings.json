@@ -50,9 +50,6 @@
       "Bash(gh issue edit*)",
       "Bash(gh label list*)",
 
-      "Bash(coderabbit review*)",
-      "Bash(coderabbit auth status*)",
-      "Bash(coderabbit --version*)",
       "Bash(gh run list*)",
       "Bash(gh run view*)",
 
