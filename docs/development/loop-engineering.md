@@ -60,14 +60,7 @@ CLI のレビューと PR のレビューの違いは次のとおりです。CLI
 ## 5. 最初の準備
 
 1. CodeRabbit の GitHub App をリポジトリに入れます。
-2. ラベルを作ります。
-
-   ```bash
-   gh label create loop:ready --color 0e8a16 --description "ループが着手してよい issue"
-   gh label create loop:in-progress --color fbca04 --description "ループが作業中、または PR がマージ待ちの issue"
-   gh label create loop:needs-human --color d93f0b --description "ループでは進められず、人の判断が要る"
-   gh label create loop:awaiting-merge --color 1d76db --description "レビュー対応が済み、人のマージを待つ PR"
-   ```
+2. `gh auth login` で GitHub にログインし、リポジトリ直下で `make labels` を実行して、4つのラベルを作ります。中身は `gh label create --force` で、何度実行しても同じ状態になります。
 
 3. main のブランチ保護（[contributing.md の1章](contributing.md)）を設定します。必須チェックの `ci-result` は CI のワークフロー（`.github/workflows/ci.yml`）が報告するものなので、ワークフローを入れる前は、PR を必須にし、直接の push と強制 push を禁止するところまでにします。`ci-result` を必須チェックに足すのは、ci.yml を main にマージし、`ci-result` が一度報告されてからです。
 4. ループを動かす PC に CodeRabbit CLI を入れ、人がログインします。`coderabbit auth status` でログインできているかを確かめます。
