@@ -33,7 +33,7 @@ Step 3 で Cognito に置き換えるまでの仮の仕組みです。画面は�
 
 利用者のモデルは、最初から独自のもの（`accounts.User`。`AbstractUser` を継承し、項目は足さない）にします。Django の公式の文書が、プロジェクトの開始時に独自の利用者のモデルにすることを勧めているためです。あとから変えると、マイグレーションの作り直しが要ります。Step 3 で Cognito の利用者の ID を持たせるときも、このモデルに項目を足します。
 
-すでにマイグレーションを実行したローカルの DB には、Django の標準の利用者のモデルを前提にしたマイグレーション（`admin`、`auth` など）が適用されています。独自の利用者のモデルに切り替えたあとにこの DB でマイグレーションを実行すると、Django が `InconsistentMigrationHistory` で止まります。ローカルの DB には残すべきデータがないので、切り替えるときは DB を作り直します（リポジトリの直下で `docker compose down -v` を実行して PostgreSQL のボリュームを消してから、`make db-up` と `make -C backend migrate`）。この手順は `docs/development/local-setup.md` にも書きます。
+すでにマイグレーションを実行したローカルの DB には、Django の標準の利用者のモデルを前提にしたマイグレーション（`admin`、`auth` など）が適用されています。独自の利用者のモデルに切り替えたあとにこの DB でマイグレーションを実行すると、Django が `InconsistentMigrationHistory` で止まります。ローカルの DB には残すべきデータがないので、切り替えるときは DB を作り直します（リポジトリの直下で `docker compose down -v` を実行して PostgreSQL のボリュームを消してから、`make db-up` と `make -C backend migrate`）。`POSTGRES_PORT` でポートを変えている場合は、`make db-up` にも同じ `POSTGRES_PORT` を付け、`DATABASE_URL` を同じポートに合わせます（[ローカルでの動かし方](../development/local-setup.md)の手順3）。この手順は `docs/development/local-setup.md` にも書きます。
 
 ## 3. モデル
 
