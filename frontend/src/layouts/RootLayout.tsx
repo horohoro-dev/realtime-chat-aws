@@ -29,7 +29,7 @@ function MeStatus() {
     return (
       <Alert>
         ログインしていません。
-        <Link href={loginUrl(`${location.pathname}${location.search}`)}>ログインする</Link>
+        <Link href={loginUrl(`${location.pathname}${location.search}${location.hash}`)}>ログインする</Link>
       </Alert>
     );
   }

@@ -8,12 +8,12 @@ describe("ログインの確認", () => {
   it("未ログイン（403）なら、今の URL を next に付けたログインの画面へのリンクを出す", async () => {
     server.use(http.get("/api/me/", () => new HttpResponse(null, { status: 403 })));
 
-    renderRoute("/rooms/new?from=top");
+    renderRoute("/rooms/new?from=top#form");
 
     const link = await screen.findByRole("link", { name: "ログインする" });
     expect(link).toHaveAttribute(
       "href",
-      `/api/auth/login/?next=${encodeURIComponent("/rooms/new?from=top")}`,
+      `/api/auth/login/?next=${encodeURIComponent("/rooms/new?from=top#form")}`,
     );
     expect(screen.getByRole("status")).toContainElement(link);
     expect(screen.queryByRole("heading", { level: 2 })).not.toBeInTheDocument();
