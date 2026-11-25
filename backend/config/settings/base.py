@@ -72,4 +72,7 @@ SPECTACULAR_SETTINGS = {
     "TITLE": "realtime-chat-aws API",
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
+    # リクエストの本文を Room と RoomRequest のように別の型にする。
+    # 分けないと read_only の項目（id など）が、送る側の型にも必須の項目として入る
+    "COMPONENT_SPLIT_REQUEST": True,
 }

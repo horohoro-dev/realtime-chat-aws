@@ -14,7 +14,13 @@ realtime-chat-aws/
 ├── LICENSE                       # MIT
 ├── THIRD_PARTY_NOTICES.md        # 取り込んだファイルのライセンス
 ├── CLAUDE.md                     # Claude Code と人が守る決まり（言語、公開してよい内容、コメント、UI、ライセンス）
-├── Makefile                      # 検査とテストの入口。make help で一覧。CI と同じコマンド
+├── Makefile                      # リポジトリ全体の入口。make help で一覧。中身は各サービスの Makefile に任せる
+├── mk/                           # 各サービスの Makefile が include する共通の入口
+│   ├── common.mk                 # help、ENV の検査、コミットのハッシュ
+│   ├── python.mk                 # uv のサービスの setup、lint、fix、test
+│   ├── pnpm.mk                   # pnpm のパッケージの setup、lint、fix、test、build、dev
+│   └── aws.mk                    # ECR へのイメージの登録と、Parameter Store のイメージのタグ
+├── mise.toml                     # 開発に使うコマンドの版（uv、Terraform、tflint、SOPS、age、Trivy など）
 ├── docker-compose.yml            # 開発者の PC で使う PostgreSQL
 ├── .editorconfig                 # 文字コード、改行、インデント
 ├── .gitignore                    # 秘密情報、tfstate、ビルドの生成物
@@ -48,6 +54,7 @@ realtime-chat-aws/
 │   └── openapi.yaml              # API 定義。バックエンドが出力し、フロントエンドが型を生成する（make api）
 │
 ├── backend/                      # Django。uv で依存を管理する
+│   ├── Makefile                  # mk/python.mk と mk/aws.mk を include。run、migrate、schema など
 │   ├── pyproject.toml、uv.lock   # 依存と、Ruff と pytest の設定
 │   ├── manage.py
 │   ├── config/settings/          # base.py、local.py、test.py
@@ -55,13 +62,17 @@ realtime-chat-aws/
 │   └── tests/
 │
 ├── frontend/                     # React、TypeScript、Vite。pnpm で依存を管理する
+│   ├── Makefile                  # mk/pnpm.mk を include。gen-api、e2e など
 │   ├── package.json              # packageManager で pnpm の版を決める
 │   ├── pnpm-lock.yaml
 │   ├── .nvmrc                    # Node.js の版
 │   ├── biome.json                # 整形とリントの設定（docs/development/frontend-rules.md）
 │   ├── biome-plugins/            # Biome の独自ルール（GritQL）
-│   ├── vite.config.ts
+│   ├── vite.config.ts            # Vite と Vitest の設定
+│   ├── playwright.config.ts      # E2E テストの設定。ビルドした画面を vite preview で配信して動かす
+│   ├── e2e/                      # Playwright の E2E テスト
 │   └── src/
+│       └── api/schema.d.ts       # api/openapi.yaml から生成した API の型。Biome の検査の対象外
 │
 ├── infra/                        # （予定）Terraform
 │
@@ -72,7 +83,7 @@ realtime-chat-aws/
     ├── dependabot.yml            # 依存ライブラリの更新
     ├── scripts/trivy-summary.jq  # Trivy の結果を、ジョブの概要の表にする
     └── workflows/
-        └── ci.yml                # PR の検査。changes で変更を判定し、必要なジョブだけ並列に動かす
+        └── ci.yml                # PR の検査。changes で変更を判定し、必要なジョブだけ並列に動かす。テストと Trivy の結果を Artifact に残す
 ```
 
 `planning/` は、まだ決めていない論点と、決めたことの記録です。固まった内容は `docs/` に移します。

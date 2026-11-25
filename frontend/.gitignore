@@ -10,6 +10,11 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+
+# Playwright と Vitest の結果
+playwright-report
+test-results
+blob-report
 *.local
 
 # Editor directories and files
