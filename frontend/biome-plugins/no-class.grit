@@ -1,0 +1,12 @@
+// class の宣言と class 式を検出する。データは type と関数、部品は関数コンポーネントで書く。
+or {
+  `class $name { $body }`,
+  `class $name extends $base { $body }`,
+  `class { $body }`,
+  `class extends $base { $body }`
+} as $class where {
+  register_diagnostic(
+    span = $class,
+    message = "class は書きません。データは type とそれを受け取る関数、部品は関数コンポーネントで書いてください（docs/development/frontend-rules.md の4.2）。"
+  )
+}

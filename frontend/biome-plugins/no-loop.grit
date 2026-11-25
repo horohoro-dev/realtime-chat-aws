@@ -1,0 +1,13 @@
+// for、for...of、for...in、while、do...while を検出する。配列は map、filter、reduce などで処理する。
+or {
+  JsForStatement(),
+  JsForOfStatement(),
+  JsForInStatement(),
+  JsWhileStatement(),
+  JsDoWhileStatement()
+} as $loop where {
+  register_diagnostic(
+    span = $loop,
+    message = "for と while は書きません。配列は map、filter、reduce、some、every、find などで処理してください。オブジェクトは Object.entries で配列にします（docs/development/frontend-rules.md の4.2）。"
+  )
+}
