@@ -23,7 +23,7 @@ realtime-chat-aws/
 ├── .claude/
 │   ├── settings.json             # 許可と拒否のコマンド、フック
 │   ├── hooks/
-│   │   ├── session-start.sh      # クラウドセッションで uv と pnpm の依存を入れ、CodeRabbit CLI にログインする
+│   │   ├── session-start.sh      # クラウドセッションで uv と pnpm の依存を入れる
 │   │   ├── check-history-comments.py  # 経緯を書いたコメントを指摘する
 │   │   ├── lint-edited-file.py   # 編集したファイルを整形し、残った lint の違反を返す
 │   │   └── check-before-stop.py  # 応答を終える前に lint と型検査を動かし、失敗なら直させる

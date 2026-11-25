@@ -26,7 +26,7 @@ Claude Code が実装したコードは、整形、リント、型検査を通�
 |---|---|---|---|
 | 1 | ファイルを編集するたび | hook `.claude/hooks/lint-edited-file.py` | 編集したファイルだけを整形し（Biome か ruff）、自動で直せない違反を Claude Code に返す。Claude Code はその場で直す |
 | 2 | Claude Code が応答を終える前 | hook `.claude/hooks/check-before-stop.py` | 変更のある側の検査（フロントエンドは `biome ci` と `tsc --noEmit`、バックエンドは `ruff check` と `ruff format --check`）を動かす。失敗があれば終わらせずに結果を返し、Claude Code が直す。同じセッションで5回続けて直らなければ、終了を許して人に知らせる |
-| 3 | PR を出す前 | Claude Code | `make lint` と `make test` を通す。issue ループでは、続けて CodeRabbit CLI でレビューする（[loop-engineering.md](loop-engineering.md)） |
+| 3 | PR を出す前 | Claude Code | `make lint` と `make test` を通す。issue ループでは、続けて `code-review` スキルでレビューする（[loop-engineering.md](loop-engineering.md)） |
 | 4 | PR を出したあと | CI と CodeRabbit | CI（`.github/workflows/ci.yml`）が同じ検査とテストを動かし、CodeRabbit がレビューする |
 | 5 | 4 が済んだあと | 人 | PR を読み、マージする |
 
