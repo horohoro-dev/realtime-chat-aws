@@ -2,7 +2,10 @@
 
 コマンドは Makefile の入口から動かします。リポジトリ直下の `make help` で全体の入口、`backend/` と `frontend/` の `make help` でそれぞれの入口を見られます。
 
-1. 開発に使うコマンドを [mise](https://mise.jdx.dev/) で入れます。リポジトリ直下で `mise install` を実行すると、`mise.toml` に書いた版の Node.js、Python、uv、Terraform、tflint、SOPS、age、Trivy が入ります。pnpm は Corepack で入れます（`corepack enable`）。版は `frontend/package.json` の `packageManager` で決めます。
+1. 開発に使うコマンドを [mise](https://mise.jdx.dev/) で入れます。
+   1. 入れたコマンドを PATH から使えるように、シェルの設定ファイルで mise を有効にします。bash なら `~/.bashrc` に `eval "$(mise activate bash)"`、zsh なら `~/.zshrc` に `eval "$(mise activate zsh)"` を書き、シェルを開き直します。エディタや CI のように対話のシェルを使わないところでは、`~/.local/share/mise/shims` を PATH に足します（[Shims](https://mise.jdx.dev/dev-tools/shims.html)）。
+   2. リポジトリ直下で `mise install` を実行すると、`mise.toml` に書いた版の Node.js、Python、uv、Terraform、tflint、SOPS、age、Trivy が入ります。
+   3. pnpm は Corepack で入れます（`corepack enable`）。版は `frontend/package.json` の `packageManager` で決めます。
 2. リポジトリ直下で `make setup` を実行し、バックエンドとフロントエンドの依存を入れます。
 3. `make db-up` で PostgreSQL を起動します。5432番がほかで使われているときは、`POSTGRES_PORT=5433 make db-up` のようにポートを変え、`DATABASE_URL=postgres://postgres:postgres@localhost:5433/postgres` を環境変数で渡します。
 4. `backend/` で `make migrate`、`make run` を実行します。
@@ -25,4 +28,10 @@
 | `mk/aws.mk` | ECR へのイメージの登録（`release-image ENV=dev`）と、Parameter Store のイメージのタグ。AWS のアカウント ID は書かず、ログイン中のプロファイルから引く |
 | `backend/Makefile`、`frontend/Makefile` | 上の `.mk` を include し、サービスに固有の入口（`migrate`、`schema`、`gen-api`、`e2e` など）を足す |
 
-サービスを足すときは、そのディレクトリに Makefile を置き、先頭で `ROOT_DIR := ../` と `include $(ROOT_DIR)mk/python.mk` のように読み込みます。`setup`、`lint`、`fix`、`test` の名前をそろえると、リポジトリ直下の入口から呼べます。
+サービスを足すときは、次の3つを行います。
+
+1. そのディレクトリに Makefile を置き、先頭で `ROOT_DIR := ../` と `include $(ROOT_DIR)mk/python.mk` のように読み込みます。入口の名前は `setup`、`lint`、`fix`、`test` にそろえます。
+2. リポジトリ直下の `Makefile` の `SERVICES` にサービス名を足します。
+3. 同じ `Makefile` に `setup-<サービス名>`、`fix-<サービス名>`、`lint-<サービス名>`、`test-<サービス名>` の入口を足し、それぞれ `$(MAKE) -C <サービス名> <入口>` を呼びます。backend と frontend の入口と同じ形です。
+
+2と3を忘れると、リポジトリ直下の `make test` はそのサービスを飛ばしたまま成功します。
