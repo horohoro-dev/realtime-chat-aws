@@ -1,0 +1,103 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+language: ja-JP
+
+reviews:
+  profile: quiet
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false
+  # issue-loop の skill は、gh pr checks に出る CodeRabbit のチェックの完了でレビューの終わりを判定する
+  review_progress: true
+  assess_linked_issues: true
+  auto_review:
+    enabled: true
+    drafts: false
+    auto_incremental_review: true
+
+  path_filters:
+    - "!**/pnpm-lock.yaml"
+    - "!**/uv.lock"
+    - "!**/.terraform.lock.hcl"
+
+  path_instructions:
+    - path: "**"
+      instructions: |
+        このリポジトリは公開リポジトリです。AWS のアカウント ID、アクセスキー、メールアドレス、
+        秘密の値（DJANGO_SECRET_KEY、OIDC_CLIENT_SECRET、DB のパスワード）がコード、設定、ログの出力に
+        含まれていないかを確認してください。
+    - path: "backend/**"
+      instructions: |
+        Django のバックエンドです。
+        ルームのメンバーかどうかの確認が API と WebSocket ごとに漏れていないか、
+        メンバーでないルームのメッセージや添付ファイルを ID の指定だけで読めないかを重点的に確認してください。
+    - path: "frontend/**"
+      instructions: |
+        React、React Aria Components、Tailwind CSS のフロントエンドです。
+        Toast などのトースト通知は使わず、インラインの Alert か
+        ページ遷移を使う決まりです。パッケージマネージャーは pnpm で、npm と yarn は使いません。
+        書き方の決まりは docs/development/frontend-rules.md にあります。次を重点的に確認してください。
+        props や state から計算できる値を useEffect で state に入れていないか。
+        利用者の操作で決まる処理を、イベントハンドラではなく useEffect に書いていないか。
+        サーバーのデータを src/api/queries/ の TanStack Query のフック以外で取得していないか、
+        取得したデータを state にコピーしていないか。
+        クエリキーに、取得に効く値（絞り込みの条件、ID）がすべて入っているか。
+        メモ化は React Compiler が入れるので、useMemo、useCallback、memo を書いていないか。
+        props の配列やオブジェクトの中身を書き換えていないか。
+        biome-ignore で抑止しているところに、正当な理由が書かれているか。
+    - path: "backend/**/*.py"
+      instructions: |
+        書き方の決まりは docs/development/backend-rules.md にあります。
+        noqa で抑止しているところに、正当な理由が書かれているか確認してください。
+    - path: "infra/**"
+      instructions: |
+        Terraform です。アカウント ID などの公開しなくてよい値は
+        SSM パラメータストアの /chat/terraform/ から読む決まりです。IAM の権限が広すぎないか、
+        暗号化や公開範囲の設定が抜けていないかを確認してください。
+    - path: ".github/**"
+      instructions: |
+        公開リポジトリのワークフローです。
+        既定の権限は contents: read にし、id-token: write と pull-requests: write は要るジョブにだけ付けること、
+        pull_request_target を使わないこと、アクションの版をコミットハッシュで固定すること、
+        set -x を使わないこと、Terraform は .github/actions/terraform-run/ を通してだけ実行することを確認してください。
+    - path: "docs/**"
+      instructions: |
+        日本語の設計文書です。docs/README.md の用語表と同じ語を使っているか、
+        文書どうしで内容が食い違っていないかを確認してください。
+        同時操作での細かな競合、まれな場合分け、実装の段階で決めればよい細部は指摘しないでください。
+
+  tools:
+    ruff:
+      enabled: true
+    biome:
+      enabled: true
+    actionlint:
+      enabled: true
+    tflint:
+      enabled: true
+    checkov:
+      enabled: true
+    hadolint:
+      enabled: true
+    gitleaks:
+      enabled: true
+    shellcheck:
+      enabled: true
+
+chat:
+  auto_reply: true
+
+issue_enrichment:
+  auto_enrich:
+    enabled: false
+  planning:
+    enabled: true
+    auto_planning:
+      enabled: true
+      labels:
+        - "loop:ready"
+
+knowledge_base:
+  code_guidelines:
+    enabled: true
+    filePatterns:
+      - "CLAUDE.md"

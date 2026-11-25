@@ -1,0 +1,44 @@
+# Terraform のプロバイダと Docker のベースイメージは、infra/ と backend/Dockerfile ができてから足す。
+version: 2
+
+updates:
+  - package-ecosystem: uv
+    directory: /backend
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Asia/Tokyo
+    # 公開されて間もない版は、乗っ取りなどの問題が見つかる前のことがあるので、7日待ってから PR にする
+    cooldown:
+      default-days: 7
+    groups:
+      backend-minor-and-patch:
+        update-types: [minor, patch]
+
+  # pnpm の pnpm-lock.yaml も npm として扱われる
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Asia/Tokyo
+    cooldown:
+      default-days: 7
+    groups:
+      frontend-minor-and-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Asia/Tokyo
+    cooldown:
+      default-days: 7
+    groups:
+      actions-minor-and-patch:
+        update-types: [minor, patch]

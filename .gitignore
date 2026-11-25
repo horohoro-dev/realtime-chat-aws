@@ -1,0 +1,56 @@
+# OS とエディタ
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Claude Code
+.claude/settings.local.json
+.claude/worktrees/
+
+# 秘密情報
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+
+# Terraform
+# terraform.tfvars には公開してよい値だけを書き、コミットする
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+tfplan
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+# LocalFileStore の保存先（config/settings/local.py）
+backend/.file-store/
+
+# Node
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+.pnpm-store/
+pnpm-debug.log*
+
+# ログ
+*.log

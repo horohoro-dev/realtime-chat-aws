@@ -1,0 +1,5 @@
+# ここに挙げたパスを変える PR は、管理者のレビューを必須にする
+/.github/ @horohoro-dev
+/.claude/ @horohoro-dev
+/infra/ @horohoro-dev
+/deploy/ @horohoro-dev

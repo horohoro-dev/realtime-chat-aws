@@ -1,0 +1,53 @@
+name: タスク
+description: 1つの PR で終わる大きさの作業。issue ループ（docs/development/loop-engineering.md）の単位になる
+body:
+  - type: markdown
+    attributes:
+      value: |
+        公開リポジトリです。アカウント ID、メールアドレス、秘密の値は書かないでください。
+        ループに渡すときは `loop:ready` のラベルを付けます。
+
+  - type: textarea
+    id: background
+    attributes:
+      label: 背景
+      description: なぜこの作業が要るか。関係する機能や画面
+    validations:
+      required: true
+
+  - type: textarea
+    id: requirements
+    attributes:
+      label: 要件
+      description: 作るもの、変えるもの。ファイルや API の名前が分かっていれば書く
+    validations:
+      required: true
+
+  - type: textarea
+    id: completion
+    attributes:
+      label: 完了要件
+      description: 終わったと判断できる条件。テストやコマンドで確かめられる形で書く
+      value: |
+        - [ ]
+    validations:
+      required: true
+
+  - type: textarea
+    id: out-of-scope
+    attributes:
+      label: 対象外
+      description: この issue ではやらないこと。別の issue に回すもの
+
+  - type: input
+    id: depends-on
+    attributes:
+      label: 依存する issue
+      description: 先にマージされている必要がある issue。「#12, #13」のように書く。なければ「なし」
+      placeholder: なし
+
+  - type: textarea
+    id: references
+    attributes:
+      label: 参照する設計文書
+      description: docs/design/ の文書と章
