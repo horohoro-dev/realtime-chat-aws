@@ -19,7 +19,7 @@ GitHub の issue、CodeRabbit、Claude Code を組み合わせて、issue の計
 | 1 | 人と Claude Code | 設計を決め、`docs/design/` に書く |
 | 2 | Claude Code（`/tasks-to-issues`） | 設計を issue に分ける。人が一覧を確かめてから登録し、`loop:ready` を付ける |
 | 3 | CodeRabbit | `loop:ready` の issue に Coding Plan を付ける |
-| 4 | Claude Code（`/issue-loop`） | 依存の PR がすべて develop にマージされた issue を1つ選び、develop からブランチを作り、計画を読んで実装する |
+| 4 | Claude Code（`/issue-loop`） | 依存の PR がすべて develop にマージされた issue を選び、issue ごとに develop から作業ツリーを作って実装する。依存のない issue は同時に4つまで進める |
 | 5 | Claude Code と CodeRabbit CLI | `coderabbit review --agent` で手元の差分をレビューし、指摘を判断して直す。最大3回 |
 | 6 | Claude Code | develop に向けた PR を作り、`@coderabbitai review` でレビューを頼む（Free プランは main 以外に向けた PR を自動でレビューしない） |
 | 7 | CodeRabbit | PR をレビューする。紐づいた issue の要件を満たしているかも見る |
