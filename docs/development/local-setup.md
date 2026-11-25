@@ -17,7 +17,7 @@
 5. `frontend/` で `make dev` を実行します。
    - Vite の開発サーバーは、`/api` へのリクエストを `http://localhost:8000` に転送します（`server.proxy`）。dev と prd と同じく、フロントエンドと API を同じオリジンから配信する形にして、セッション Cookie と CSRF トークンをそのまま使うためです。
 6. ログインの方法は、dev 環境の Cognito ができるまでと、できたあとで変わります。
-   - dev 環境ができるまで：手元だけで使う仮のログインを使います。`make -C backend createsuperuser` か管理画面（`/admin/`）で利用者を作り、`/api/auth/login/` でログインします。詳しくは [Step 1 の設計](../design/step1-app.md)の2章にあります。
+   - dev 環境ができるまで：手元だけで使う仮のログインを使います。`make -C backend createsuperuser` か管理画面（`/admin/`）で利用者を作り、`/api/auth/login/` でログインします。ログインすると `/api/me/` に移り、ログイン中の利用者が JSON で表示されます。詳しくは [Step 1 の設計](../design/step1-app.md)の2章にあります。
    - dev 環境ができたあと：IAM Identity Center で dev アカウントにログインし（`aws sso login`）、dev のユーザープールのアプリクライアント `local` のクライアントシークレットを Secrets Manager から取得して、`backend/.env` に書きます。`backend/.env` は `.gitignore` に入れてあり、コミットしません。
    - `backend/.env` には `KEY=VALUE` の形で、`OIDC_ISSUER`、`OIDC_CLIENT_ID`（アプリクライアント `local` の ID）、`OIDC_CLIENT_SECRET`、`COGNITO_DOMAIN`、`COGNITO_USER_POOL_ID` を書きます。`config/settings/local.py` が起動時に読みます。同じ名前の環境変数があれば、そちらを使います。
 7. 検査とテストは、リポジトリ直下の `make lint` と `make test` で動かします。CI と同じコマンドです。E2E テスト（Playwright）は `make e2e` で動かします。初回は `frontend/` で `pnpm exec playwright install chromium` を実行してブラウザを入れます。

@@ -29,5 +29,18 @@ def test_login_page_is_served(client):
     assert response.status_code == 200
 
 
+@pytest.mark.django_db
+def test_login_without_next_redirects_to_me(client, django_user_model):
+    django_user_model.objects.create_user(username="alice", password="pass-1234")
+
+    response = client.post(
+        "/api/auth/login/", {"username": "alice", "password": "pass-1234"}, follow=True
+    )
+
+    assert response.redirect_chain[-1][0] == "/api/me/"
+    assert response.status_code == 200
+    assert response.json()["username"] == "alice"
+
+
 def test_user_model_is_accounts_user():
     assert get_user_model() is User
