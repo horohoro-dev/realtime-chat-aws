@@ -33,6 +33,8 @@ Step 3 で Cognito に置き換えるまでの仮の仕組みです。画面は�
 
 利用者のモデルは、最初から独自のもの（`accounts.User`。`AbstractUser` を継承し、項目は足さない）にします。Django の公式の文書が、プロジェクトの開始時に独自の利用者のモデルにすることを勧めているためです。あとから変えると、マイグレーションの作り直しが要ります。Step 3 で Cognito の利用者の ID を持たせるときも、このモデルに項目を足します。
 
+すでにマイグレーションを実行したローカルの DB には、Django の標準の利用者のモデルを前提にしたマイグレーション（`admin`、`auth` など）が適用されています。独自の利用者のモデルに切り替えたあとにこの DB でマイグレーションを実行すると、Django が `InconsistentMigrationHistory` で止まります。ローカルの DB には残すべきデータがないので、切り替えるときは DB を作り直します（リポジトリの直下で `docker compose down -v` を実行して PostgreSQL のボリュームを消してから、`make db-up` と `make -C backend migrate`）。この手順は `docs/development/local-setup.md` にも書きます。
+
 ## 3. モデル
 
 Django のアプリは `backend/apps/` の下に置きます。
@@ -154,7 +156,7 @@ Playwright の全体のテストは、バックエンドと PostgreSQL を動か
 
 | # | 作業 | 依存 |
 |---|---|---|
-| 1 | 独自の利用者のモデル（`apps.accounts`）、`/api/auth/` のログイン、`GET /api/me/`、認証と権限の既定値 | なし |
+| 1 | 独自の利用者のモデル（`apps.accounts`）、`/api/auth/` のログイン、`GET /api/me/`、認証と権限の既定値、ローカルの DB を作り直す手順 | なし |
 | 2 | `apps.rooms` の3つのモデル、マイグレーション、管理画面への登録 | 1 |
 | 3 | ルームの API（一覧、作成、詳細） | 2 |
 | 4 | メンバーの API（一覧、招待） | 3 |
