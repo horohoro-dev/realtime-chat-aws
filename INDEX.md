@@ -41,7 +41,8 @@ realtime-chat-aws/
 │   ├── roadmap.md                # Step ごとの作業計画
 │   ├── adr/                      # ADR。README.md に一覧と書き方
 │   ├── design/
-│   │   └── architecture.md       # AWS 構成の全体像と、論点ごとの方針
+│   │   ├── architecture.md       # AWS 構成の全体像と、論点ごとの方針
+│   │   └── step1-app.md          # Step 1 のアプリのモデル、API、画面、仮のログイン
 │   ├── development/
 │   │   ├── contributing.md       # ブランチの運用、PR とレビュー、人に見せる前の検査
 │   │   ├── frontend-rules.md     # React などの書き方の決まりと、Biome のルールの意図
