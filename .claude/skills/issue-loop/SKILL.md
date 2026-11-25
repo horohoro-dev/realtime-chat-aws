@@ -1,6 +1,6 @@
 ---
 name: issue-loop
-description: loop:ready のラベルが付いた GitHub の issue を1つずつ、実装、Claude の code-review でのレビュー、PR、CodeRabbit の1回のレビューへの対応まで進め、人のマージ待ちにする。着手できる issue がなくなるまで繰り返す。「issue を進めて」「ループを回して」「/issue-loop」で使う。PR のマージは絶対にしない。
+description: loop:ready のラベルが付いた GitHub の issue を、依存のないものは並列に、実装、Claude の code-review でのレビュー、PR、CodeRabbit の1回のレビューへの対応まで進め、人のマージ待ちにする。着手できる issue がなくなるまで繰り返す。「issue を進めて」「ループを回して」「/issue-loop」で使う。PR のマージは絶対にしない。
 ---
 
 # issue ループ
@@ -28,6 +28,19 @@ PR は develop に向けます。ループの作業は、PR が develop にマ�
 | `loop:needs-human` | issue | ループでは進められない。人の判断が要る |
 | `loop:awaiting-merge` | PR | レビュー対応が済み、人のマージを待つ |
 
+## 並列で進める
+
+依存が済んでいる issue は、同時に **4つ** まで進める。数えるのは、`loop:in-progress` が付き、PR に `loop:awaiting-merge` がまだ付いていない issue。マージ待ちの PR と、CodeRabbit の回数の上限でレビューを待っている PR（手順8）は数えない。4つは、CodeRabbit の PR のレビューの回数の上限（1時間に10回）から決めた数。
+
+- 作業ツリーは issue ごとに分ける。リポジトリの隣に `git worktree add ../wt-issue-<番号> -b loop/issue-<番号>-<英小文字とハイフンの短い名前> origin/develop` で作り、その中の `frontend/` で `pnpm install --frozen-lockfile`、`backend/` で `uv sync --frozen` を行う。メインの作業ツリーのブランチは切り替えない。
+- 実装のサブエージェント（手順5）は issue ごとに1つ、`run_in_background` で動かす。プロンプトには、作業ツリーのパス、ほかの作業ツリーのファイルを変えないこと、push と PR の作成をしないことを書く。
+- バックエンドのテストのデータベースが、作業ツリーどうしでぶつからないようにする。作業ツリーの中でテストを動かすときは、`DATABASE_URL=postgres://postgres:postgres@localhost:5432/issue<番号>` を付ける。pytest-django が、この名前から issue ごとのテスト用のデータベースを作る。
+- `code-review` でのレビュー（手順6）、push と PR の作成（手順7）、レビューの対応（手順8〜10）は、メインのセッションが issue ごとに行う。
+- 同じファイルを触る issue も並列に進めてよい。先にマージされた PR と衝突したら、手順1の「マージ待ちの PR が `CONFLICTING` なら」と同じように、develop を取り込んで解く。
+  - `api/openapi.yaml` と `frontend/src/api/schema.d.ts` の衝突は手で直さず、取り込んだあとに `make api` で作り直す。
+  - 同じ Django アプリのマイグレーションが2つに分かれたら、後からマージする側のマイグレーションのファイルを消し、`make -C backend makemigrations` で作り直す。
+- PR が develop にマージされたら、手順1で、その issue の作業ツリーを `git worktree remove` で消す。
+
 ## 1回分の手順
 
 ### 1. 状態をそろえる
@@ -44,6 +57,7 @@ git diff --name-only --diff-filter=U
 - `MERGE_HEAD` があれば、衝突を解く途中（下の「マージ待ちの PR が `CONFLICTING` なら」の2）で止まったもの。変更を消さず（`git merge --abort` もしない）、残っている衝突のファイル（`--diff-filter=U` の結果）を解き、テストを通し、マージをコミットして push する。そのあとは下の手順の3から続ける。
 - 変更がなければ、次に進む。
 - `MERGE_HEAD` がなく、`loop/issue-<番号>-*` のブランチに変更があれば、前回の作業が途中で止まったもの。ブランチを切り替えず、変更も消さずに、その issue の作業を手順5から続ける（手順1の残りと手順2は飛ばす）。
+- `git worktree list` にある `wt-issue-<番号>` の作業ツリーも、同じように `git -C <作業ツリー> status --short` で確かめる。変更があれば、前回の作業が途中で止まったもの。その issue の作業を、その作業ツリーで手順5から続ける。
 - それ以外のブランチに変更があれば、人の作業の途中かもしれない。変更に触れず（stash、restore、checkout をしない）、ループを始めずに、ブランチ名と変更のあるファイルを報告して止める。
 
 ```bash
@@ -102,17 +116,21 @@ gh issue list --state open --label loop:ready --json number,title,labels,body --
   - 本文に `Fixes #<依存の番号>` を含み（検索は `#170` などにも当たるので、本文で番号が一致することを確かめる）、`baseRefName` が `develop` か `main` の、マージ済みの PR があれば、その依存は済んでいる。
   - そのような PR がなく、issue が `OPEN` なら、依存の待ち。この issue は飛ばす。
   - そのような PR がなく、issue が `CLOSED`（`stateReason` が `NOT_PLANNED`、または PR なしで閉じられた）なら、依存を外してよいかは人が決める。この issue に `loop:needs-human` を付け、どの依存が実装されないまま閉じられたかをコメントして、次の issue を見る。
-- 依存がすべて済んでいる issue の最初の1つに着手する。
-- 着手できる issue がなく、回数の上限でレビューを待っている PR だけが残っていれば、上限が戻る時刻のうち最も早いものまで待ち（Bash を `run_in_background` で動かし、`sleep` で待つ）、その PR を手順8から再開する。
-- 着手できる issue も、レビューを待っている PR もなければ、ループを終えて「終わったとき」の報告をする。
+- 依存がすべて済んでいる issue に、番号の小さい順に、同時に進める数が上限（「並列で進める」）に達するまで着手する。
+- 着手できる issue も進めている issue もなく、回数の上限でレビューを待っている PR だけが残っていれば、上限が戻る時刻のうち最も早いものまで待ち（Bash を `run_in_background` で動かし、`sleep` で待つ）、その PR を手順8から再開する。
+- 着手できる issue も、進めている issue も、レビューを待っている PR もなければ、ループを終えて「終わったとき」の報告をする。
 
 着手する issue に `gh issue edit <番号> --add-label loop:in-progress` を付ける。
 
-### 3. ブランチを作る
+### 3. 作業ツリーを作る
+
+「並列で進める」のとおり、issue ごとの作業ツリーを作る。
 
 ```bash
-git switch -c loop/issue-<番号>-<英小文字とハイフンの短い名前> origin/develop
+git worktree add ../wt-issue-<番号> -b loop/issue-<番号>-<英小文字とハイフンの短い名前> origin/develop
 ```
+
+前回の作業が残っていれば（`git worktree list` に `wt-issue-<番号>` がある）、作り直さずにその作業ツリーで続ける。
 
 ### 4. 実装の手順を決める
 
@@ -123,10 +141,8 @@ gh api "repos/{owner}/{repo}/issues/<番号>/comments" --paginate \
   --jq '.[] | select(.user.login == "coderabbitai[bot]") | {created_at, body}'
 ```
 
-- 「Prompt for AI Agents」を含むコメントがあれば、それが計画。
-- なければ、計画を待たず、`@coderabbitai plan` でも頼まない。
-
-issue の要件、完了要件、対象外、参照する設計文書から、実装の手順を決める。計画があり、issue や設計と食い違うところは、issue と設計を優先する。
+- 「Prompt for AI Agents」を含むコメントがあれば、それが計画。計画の「Prompt for AI Agents」を読み、issue の要件、完了要件、対象外、参照する設計文書と照らして、実装の手順を決める。計画が issue や設計と食い違うところは、issue と設計を優先する。
+- なければ、計画を待たずに、issue の本文と参照する設計文書から実装の手順を決めて手順5に進む。`/tasks-to-issues` で作った issue には、要件、完了要件、対象外がすでに書いてあるため。`@coderabbitai plan` のコメントも付けない。
 
 ### 5. 実装する
 
@@ -249,7 +265,7 @@ gh pr checks <PR番号> --required --watch --interval 60
 
 ### 10. 終える、または止める
 
-**終える**：次のすべてを満たしたら、`gh pr edit <PR番号> --add-label loop:awaiting-merge` を付け、手順1に戻って次の issue に進む。issue の `loop:in-progress` は、ここでは外さない。PR が develop にマージされたあと、手順1で外す。
+**終える**：次のすべてを満たしたら、`gh pr edit <PR番号> --add-label loop:awaiting-merge` を付け、手順2に戻って、空いた分だけ次の issue に着手する。issue の `loop:in-progress` は、ここでは外さない。PR が develop にマージされたあと、手順1で外す。
 
 - PR のどれかのコミットで CodeRabbit のレビューが1回行われた（チェックランの結論が `success`。手順8の「レビュー済みかを確かめる」）
 - 未解決のスレッドがない

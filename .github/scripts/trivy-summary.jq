@@ -8,9 +8,43 @@ def has_fix: (.FixedVersion // "") != "";
 def cell: tostring | gsub("\\|"; "\\|") | gsub("[\r\n]+"; " ");
 
 [.Results[]? | .Target as $target | .Vulnerabilities[]? | . + {Target: $target}] as $vulns
+| [.Results[]? | .Target as $target | .Secrets[]? | . + {Target: $target}] as $secrets
+| [.Results[]? | .Target as $target | .Misconfigurations[]? | select(.Status == "FAIL") | . + {Target: $target}] as $misconfigs
 | [.Results[]?.Target] as $targets
 | (
-    "## Trivy の脆弱性検査",
+    "## Trivy の検査",
+    "",
+    "CI を失敗にするのは、修正版のある CRITICAL と HIGH の脆弱性、すべてのシークレット、CRITICAL と HIGH の設定ミスです。",
+    "",
+    "### シークレット",
+    "",
+    (if ($secrets | length) == 0 then
+      "シークレットは見つかりませんでした。"
+    else
+      ( "| 深刻度 | ルール | 内容 | 場所 |",
+        "|---|---|---|---|",
+        ($secrets
+          | sort_by((.Severity | severity_rank), .Target)[]
+          | "| \(.Severity) | \(.RuleID | cell) | \(.Title | cell) | `\(.Target):\(.StartLine)` |")
+      )
+    end),
+    "",
+    "### 設定ミス（Dockerfile、Terraform など）",
+    "",
+    (if ($misconfigs | length) == 0 then
+      "設定ミスは見つかりませんでした。"
+    else
+      ( "| 深刻度 | ID | 内容 | 場所 |",
+        "|---|---|---|---|",
+        ($misconfigs
+          | sort_by((.Severity | severity_rank), .Target)[]
+          | "| \(.Severity) | "
+            + (if (.PrimaryURL // "") != "" then "[\(.ID)](\(.PrimaryURL))" else .ID end)
+            + " | \(.Title | cell) | `\(.Target):\(.CauseMetadata.StartLine // "")` |")
+      )
+    end),
+    "",
+    "### 依存ライブラリの脆弱性",
     "",
     "検査した対象：" + (if ($targets | length) == 0 then "なし" else ($targets | map("`" + . + "`") | join("、")) end),
     "",
@@ -20,7 +54,7 @@ def cell: tostring | gsub("\\|"; "\\|") | gsub("[\r\n]+"; " ");
       | [$vulns[] | select(.Severity == $s)] as $found
       | "| \($s) | \($found | length) | \([$found[] | select(has_fix)] | length) |"),
     "",
-    "CI を失敗にするのは、修正版のある CRITICAL と HIGH だけです。すべての結果は Artifact の `trivy-results` からダウンロードできます。",
+    "すべての結果は Artifact の `trivy-results` からダウンロードできます。",
     "",
     (if ($vulns | length) == 0 then
       "脆弱性は見つかりませんでした。"

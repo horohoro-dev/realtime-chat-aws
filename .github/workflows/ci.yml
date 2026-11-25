@@ -20,7 +20,6 @@ jobs:
     outputs:
       backend: ${{ steps.filter.outputs.backend }}
       frontend: ${{ steps.filter.outputs.frontend }}
-      security: ${{ steps.filter.outputs.security }}
     steps:
       - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
         id: filter
@@ -35,9 +34,6 @@ jobs:
             frontend:
               - 'frontend/**'
               - 'api/openapi.yaml'
-              - '.github/workflows/ci.yml'
-            security:
-              - '.github/scripts/trivy-summary.jq'
               - '.github/workflows/ci.yml'
 
   backend-lint:
@@ -86,10 +82,17 @@ jobs:
           working-directory: backend
           enable-cache: true
       - run: uv sync --frozen
-      - run: uv run pytest -n auto
+      - run: uv run pytest -n auto --junitxml=test-results/pytest-junit.xml
         env:
           DJANGO_SETTINGS_MODULE: config.settings.test
           DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: backend-test-results
+          path: backend/test-results/
+          if-no-files-found: ignore
+          retention-days: 14
 
   backend-schema:
     needs: changes
@@ -128,8 +131,10 @@ jobs:
           - { task: lint,      timeout: 10, run: "pnpm run lint" }
           # check:api は、api/openapi.yaml から作り直した型が、コミットされた schema.d.ts と同じかを確かめる
           - { task: typecheck, timeout: 10, run: "pnpm run check:api && pnpm exec tsc --noEmit" }
-          - { task: test,      timeout: 15, run: "pnpm exec vitest run" }
+          - { task: test,      timeout: 15, run: "pnpm exec vitest run --reporter=default --reporter=junit --outputFile.junit=test-results/vitest-junit.xml" }
           - { task: build,     timeout: 10, run: "pnpm exec vite build" }
+          # ビルドした画面を vite preview で配信し、Chromium で動かす（frontend/playwright.config.ts）
+          - { task: e2e,       timeout: 20, run: "pnpm exec playwright install --with-deps chromium && pnpm run e2e" }
     defaults:
       run:
         working-directory: frontend
@@ -147,13 +152,18 @@ jobs:
           cache-dependency-path: frontend/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
       - run: ${{ matrix.run }}
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always() && (matrix.task == 'test' || matrix.task == 'e2e')
+        with:
+          name: frontend-${{ matrix.task }}-results
+          path: |
+            frontend/test-results/
+            frontend/playwright-report/
+          if-no-files-found: ignore
+          retention-days: 14
 
   security-scan:
-    needs: changes
-    if: >-
-      needs.changes.outputs.backend == 'true'
-      || needs.changes.outputs.frontend == 'true'
-      || needs.changes.outputs.security == 'true'
+    # シークレットはどのファイルにも入りうるので、変更の場所にかかわらず毎回動かす
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -171,10 +181,11 @@ jobs:
           version: v0.76.2
           scan-type: fs
           scan-ref: .
-          scanners: vuln
+          # misconfig は Dockerfile と Terraform などの設定ミスを見る
+          scanners: vuln,secret,misconfig
           format: json
           output: trivy-results.json
-          # 判定は後のステップで行うので、ここでは脆弱性があっても止めない
+          # 判定は後のステップで行うので、ここでは見つかっても止めない
           exit-code: "0"
       - name: ジョブの概要に結果の表を出す
         if: always() && hashFiles('trivy-results.json') != ''
@@ -182,7 +193,7 @@ jobs:
       - name: 表の形式の結果を作る
         if: always() && hashFiles('trivy-results.json') != ''
         # --scanners がないと深刻度ごとの件数の表が出ず、脆弱性が0件のときは空のファイルになる
-        run: trivy convert --format table --scanners vuln --output trivy-results.txt trivy-results.json
+        run: trivy convert --format table --scanners vuln,secret,misconfig --output trivy-results.txt trivy-results.json
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always() && hashFiles('trivy-results.json') != ''
         with:
@@ -191,11 +202,26 @@ jobs:
             trivy-results.json
             trivy-results.txt
           retention-days: 14
-      - name: 修正版のある CRITICAL と HIGH があれば失敗にする
+      - name: 脆弱性、シークレット、設定ミスがあれば失敗にする
         run: |
-          count=$(jq '[.Results[]?.Vulnerabilities[]? | select((.Severity == "CRITICAL" or .Severity == "HIGH") and (.FixedVersion // "") != "")] | length' trivy-results.json)
-          if [ "$count" -gt 0 ]; then
-            echo "::error::修正版のある CRITICAL と HIGH の脆弱性が ${count} 件あります。ジョブの概要の表を見てください"
+          vulns=$(jq '[.Results[]?.Vulnerabilities[]? | select((.Severity == "CRITICAL" or .Severity == "HIGH") and (.FixedVersion // "") != "")] | length' trivy-results.json)
+          secrets=$(jq '[.Results[]?.Secrets[]?] | length' trivy-results.json)
+          misconfigs=$(jq '[.Results[]?.Misconfigurations[]? | select(.Status == "FAIL" and (.Severity == "CRITICAL" or .Severity == "HIGH"))] | length' trivy-results.json)
+          failed=0
+          if [ "$vulns" -gt 0 ]; then
+            echo "::error::修正版のある CRITICAL と HIGH の脆弱性が ${vulns} 件あります"
+            failed=1
+          fi
+          if [ "$secrets" -gt 0 ]; then
+            echo "::error::シークレットが ${secrets} 件見つかりました。コミットから消し、値を無効にしてください"
+            failed=1
+          fi
+          if [ "$misconfigs" -gt 0 ]; then
+            echo "::error::CRITICAL と HIGH の設定ミスが ${misconfigs} 件あります"
+            failed=1
+          fi
+          if [ "$failed" -ne 0 ]; then
+            echo "::error::ジョブの概要の表を見てください"
             exit 1
           fi
 

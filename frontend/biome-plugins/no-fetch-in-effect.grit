@@ -4,7 +4,7 @@
   $hook <: or { `useEffect`, `useLayoutEffect` },
   $callback <: contains or {
     `fetch($...)`,
-    `$client.$method($...)` where { $method <: r"GET|POST|PUT|PATCH|DELETE" }
+    `$client.$method($...)` where { $method <: or { `GET`, `POST`, `PUT`, `PATCH`, `DELETE` } }
   },
   register_diagnostic(
     span = $hook,

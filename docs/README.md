@@ -12,6 +12,7 @@
 | [overview.md](overview.md) | このリポジトリは何か、作る機能と作らない機能 |
 | [roadmap.md](roadmap.md) | Step ごとの作業計画と、各 Step の完了条件 |
 | [design/architecture.md](design/architecture.md) | AWS 構成の全体像と、論点ごとの方針 |
+| [design/step1-app.md](design/step1-app.md) | Step 1 のアプリのモデル、API、画面、仮のログイン |
 | [adr/](adr/README.md) | 設計の判断の記録（ADR） |
 
 作業が進んだら、次のフォルダを足します。

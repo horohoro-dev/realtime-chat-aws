@@ -22,7 +22,7 @@ GitHub の issue、CodeRabbit、Claude Code を組み合わせて、issue の計
 | 1 | 人と Claude Code | 設計を決め、`docs/design/` に書く |
 | 2 | Claude Code（`/tasks-to-issues`） | 設計を issue に分ける。人が一覧を確かめてから登録し、`loop:ready` を付ける |
 | 3 | CodeRabbit | `loop:ready` の issue に Coding Plan を付ける（ループは待たない） |
-| 4 | Claude Code（`/issue-loop`） | 依存の PR がすべて develop にマージされた issue を1つ選び、develop からブランチを作り、実装する |
+| 4 | Claude Code（`/issue-loop`） | 依存の PR がすべて develop にマージされた issue を選び、issue ごとに develop から作業ツリーを作って実装する。依存のない issue は同時に4つまで進める |
 | 5 | Claude Code（`code-review`） | 作業ブランチの差分をレビューし、指摘を判断して直す。1回だけ |
 | 6 | Claude Code | develop に向けた PR を作り、`@coderabbitai review` でレビューを1回だけ頼む（CodeRabbit は main 以外に向けた PR を自動でレビューしない） |
 | 7 | CodeRabbit | PR をレビューする。紐づいた issue の要件を満たしているかも見る。回数の上限でレビューされなければ、ループは4に戻って次の issue に進み、上限が戻ってから頼み直す |
@@ -65,14 +65,7 @@ CodeRabbit の指摘を直したあとのコミットは、CodeRabbit がレビ�
 ## 5. 最初の準備
 
 1. CodeRabbit の GitHub App をリポジトリに入れます。
-2. ラベルを作ります。
-
-   ```bash
-   gh label create loop:ready --color 0e8a16 --description "ループが着手してよい issue"
-   gh label create loop:in-progress --color fbca04 --description "ループが作業中、または PR がマージ待ちの issue"
-   gh label create loop:needs-human --color d93f0b --description "ループでは進められず、人の判断が要る"
-   gh label create loop:awaiting-merge --color 1d76db --description "レビュー対応が済み、人のマージを待つ PR"
-   ```
+2. `gh auth login` で GitHub にログインし、リポジトリ直下で `make labels` を実行して、4つのラベルを作ります。中身は `gh label create --force` で、何度実行しても同じ状態になります。
 
 3. main のブランチ保護（[contributing.md の1章](contributing.md)）を設定します。必須チェックの `ci-result` は CI のワークフロー（`.github/workflows/ci.yml`）が報告するものなので、ワークフローを入れる前は、PR を必須にし、直接の push と強制 push を禁止するところまでにします。`ci-result` を必須チェックに足すのは、ci.yml を main にマージし、`ci-result` が一度報告されてからです。
 
@@ -95,6 +88,6 @@ CodeRabbit の指摘を直したあとのコミットは、CodeRabbit がレビ�
 
 ## 8. 費用と時間の目安
 
-- 1つの issue で、`code-review` に数分、CodeRabbit のレビューの待ちに5〜15分、指摘を直したあとの CI の待ちに数分かかります。
+- 1つの issue で、`code-review` に数分、CodeRabbit のレビューの待ちに5〜15分、指摘を直したあとの CI の待ちに数分かかります。CodeRabbit の計画は、着手のときに届いていれば読み、届いていなければ待ちません。
 - CodeRabbit のレビューは、1つの PR につき1回です。回数の上限に当たったときは、上限が戻るまでほかの issue を進めます。
 - トークンを抑えるため、実装はサブエージェント（Sonnet か Opus）に分け、メインのセッションは判断とレビュー対応に使います。

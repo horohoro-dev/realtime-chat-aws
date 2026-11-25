@@ -15,6 +15,8 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "rest_framework",
     "drf_spectacular",
+    "apps.accounts",
+    "apps.rooms",
 ]
 
 MIDDLEWARE = [
@@ -62,14 +64,24 @@ STATIC_URL = "static/"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+AUTH_USER_MODEL = "accounts.User"
+
+# /api/auth/login/ に next を付けずにログインしたときの遷移先
+LOGIN_REDIRECT_URL = "/api/me/"
+
 REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
     "DEFAULT_PARSER_CLASSES": ["rest_framework.parsers.JSONParser"],
+    "DEFAULT_AUTHENTICATION_CLASSES": ["rest_framework.authentication.SessionAuthentication"],
+    "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
 }
 
 SPECTACULAR_SETTINGS = {
     "TITLE": "realtime-chat-aws API",
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
+    # リクエストの本文を Room と RoomRequest のように別の型にする。
+    # 分けないと read_only の項目（id など）が、送る側の型にも必須の項目として入る
+    "COMPONENT_SPLIT_REQUEST": True,
 }

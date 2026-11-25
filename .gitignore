@@ -41,6 +41,7 @@ __pycache__/
 .ruff_cache/
 .coverage
 htmlcov/
+test-results/
 # LocalFileStore の保存先（config/settings/local.py）
 backend/.file-store/
 
