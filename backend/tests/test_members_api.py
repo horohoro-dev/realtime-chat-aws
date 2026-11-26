@@ -1,6 +1,8 @@
 import pytest
+from rest_framework.exceptions import ValidationError
 
 from apps.rooms.models import Membership, Room
+from apps.rooms.serializers import MemberSerializer
 
 
 @pytest.fixture
@@ -100,6 +102,34 @@ def test_invite_rejects_existing_member(client, alice, bob):
 
     assert response.status_code == 400
     assert "username" in response.json()
+    assert Membership.objects.filter(room=room, user=bob).count() == 1
+
+
+@pytest.mark.django_db
+def test_invite_rejects_inactive_user(client, alice, bob):
+    room = make_room("general", alice)
+    bob.is_active = False
+    bob.save()
+    client.force_login(alice)
+
+    response = invite(client, room.id, "bob")
+
+    assert response.status_code == 400
+    assert "username" in response.json()
+    assert not Membership.objects.filter(room=room, user=bob).exists()
+
+
+@pytest.mark.django_db
+def test_invite_rejects_member_added_after_validation(alice, bob):
+    room = make_room("general", alice)
+    serializer = MemberSerializer(data={"username": "bob"}, context={"room": room})
+    assert serializer.is_valid()
+    Membership.objects.create(room=room, user=bob)
+
+    with pytest.raises(ValidationError) as error:
+        serializer.save()
+
+    assert "username" in error.value.detail
     assert Membership.objects.filter(room=room, user=bob).count() == 1
 
 

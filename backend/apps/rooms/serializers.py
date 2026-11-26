@@ -24,19 +24,22 @@ class MemberSerializer(serializers.ModelSerializer):
         fields = ("user", "joined_at", "username")
         read_only_fields = ("user", "joined_at")
 
-    def validate_username(self, value):
-        user = User.objects.filter(username=value).first()
+    def validate(self, attrs):
+        username = attrs.pop("username")
+        # 無効にされた利用者はログインできないので、いない利用者と同じに扱う
+        user = User.objects.filter(username=username, is_active=True).first()
         if user is None:
-            raise serializers.ValidationError("この利用者名の利用者はいません。")
+            raise serializers.ValidationError({"username": ["この利用者名の利用者はいません。"]})
         if Membership.objects.filter(room=self.context["room"], user=user).exists():
-            raise serializers.ValidationError("すでにこのルームのメンバーです。")
-        return user
+            raise serializers.ValidationError({"username": ["すでにこのルームのメンバーです。"]})
+        attrs["user"] = user
+        return attrs
 
     def create(self, validated_data):
         try:
             with transaction.atomic():
                 return Membership.objects.create(
-                    room=self.context["room"], user=validated_data["username"]
+                    room=self.context["room"], user=validated_data["user"]
                 )
         except IntegrityError as error:
             raise serializers.ValidationError(
