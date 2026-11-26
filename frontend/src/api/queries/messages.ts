@@ -44,6 +44,7 @@ export function useMessages(roomId: number) {
 export function useSendMessage(roomId: number) {
   const queryClient = useQueryClient();
   return useMutation({
+    mutationKey: messageKeys.list(roomId),
     mutationFn: async (body: MessageRequest): Promise<SendMessageResult> => {
       const { data, error, response } = await client.POST("/api/rooms/{room_id}/messages/", {
         params: { path: { room_id: roomId } },

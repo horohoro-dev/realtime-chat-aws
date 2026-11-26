@@ -41,6 +41,7 @@ export function useMembers(roomId: number) {
 export function useInviteMember(roomId: number) {
   const queryClient = useQueryClient();
   return useMutation({
+    mutationKey: memberKeys.list(roomId),
     mutationFn: async (body: MemberRequest): Promise<InviteMemberResult> => {
       const { data, error, response } = await client.POST("/api/rooms/{room_id}/members/", {
         params: { path: { room_id: roomId } },
