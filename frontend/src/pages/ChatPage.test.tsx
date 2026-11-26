@@ -403,6 +403,55 @@ describe("メンバー", () => {
     expect(input).toHaveValue("carol");
   });
 
+  it("400 以外の招待の失敗のあとも、一覧を取り直す", async () => {
+    const receiveGet = vi.fn();
+    server.use(
+      http.get("/api/rooms/3/members/", () => {
+        receiveGet();
+        return HttpResponse.json([aliceMember]);
+      }),
+      http.post("/api/rooms/3/members/", () => new HttpResponse(null, { status: 500 })),
+    );
+
+    renderRoute("/rooms/3");
+    await screen.findByRole("list", { name: "メンバー" });
+    await submitUsername("carol");
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("メンバーを招待できませんでした");
+    await vi.waitFor(() => {
+      expect(receiveGet).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  it("招待の途中に利用者名を変えたら、送った利用者名への誤りは出さない", async () => {
+    const receivePost = vi.fn();
+    const postResponse: { resolve: () => void } = { resolve: () => undefined };
+    const postResponded = new Promise<void>((resolve) => {
+      postResponse.resolve = resolve;
+    });
+    server.use(
+      http.post("/api/rooms/3/members/", async () => {
+        receivePost();
+        await postResponded;
+        return HttpResponse.json({ username: ["この利用者はいません。"] }, { status: 400 });
+      }),
+    );
+
+    renderRoute("/rooms/3");
+    const input = await submitUsername("nobody");
+    await vi.waitFor(() => {
+      expect(receivePost).toHaveBeenCalledOnce();
+    });
+    fireEvent.change(input, { target: { value: "carol" } });
+    postResponse.resolve();
+
+    await vi.waitFor(() => {
+      expect(screen.getByRole("button", { name: "招待する" })).not.toHaveAttribute("aria-disabled");
+    });
+    expect(screen.queryByText("この利用者はいません。")).not.toBeInTheDocument();
+    expect(input).not.toHaveAttribute("aria-invalid");
+  });
+
   it("メンバーの取得に失敗したら、エラーの Alert を出す", async () => {
     server.use(http.get("/api/rooms/3/members/", () => new HttpResponse(null, { status: 500 })));
 

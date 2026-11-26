@@ -46,7 +46,11 @@ function InviteForm({ roomId }: { roomId: number }) {
   // edits は入力が変わるたびに増える。同じ利用者名を打ち直した場合も含めて、招待の途中に入力が変わったかをこの回数で見分ける
   const [draft, setDraft] = useState({ username: "", edits: 0 });
   const inviteMember = useInviteMember(roomId);
-  const validationErrors = inviteMember.data?.status === "invalid" ? inviteMember.data.errors : {};
+  // 送った値から入力が変わったら、その値への誤りは出さない
+  const validationErrors =
+    inviteMember.data?.status === "invalid" && inviteMember.variables?.username === draft.username
+      ? inviteMember.data.errors
+      : {};
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

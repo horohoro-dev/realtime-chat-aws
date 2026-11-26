@@ -88,7 +88,11 @@ function MessageForm({ roomId }: { roomId: number }) {
   // edits は入力が変わるたびに増える。同じ本文を打ち直した場合も含めて、送信の途中に入力が変わったかをこの回数で見分ける
   const [draft, setDraft] = useState({ body: "", edits: 0 });
   const sendMessage = useSendMessage(roomId);
-  const validationErrors = sendMessage.data?.status === "invalid" ? sendMessage.data.errors : {};
+  // 送った値から入力が変わったら、その値への誤りは出さない
+  const validationErrors =
+    sendMessage.data?.status === "invalid" && sendMessage.variables?.body === draft.body
+      ? sendMessage.data.errors
+      : {};
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

@@ -58,8 +58,8 @@ export function useInviteMember(roomId: number) {
       }
       return { status: "invited", member: data };
     },
-    // 「すでにメンバー」の 400 は、ほかの人の招待で一覧が古くなっているときにも返るので、どちらでも取り直す
-    onSuccess: async () => {
+    // 「すでにメンバー」の 400 や招待の失敗は、ほかの人の招待で一覧が古くなっているときにも返るので、結果によらず取り直す
+    onSettled: async () => {
       await queryClient.invalidateQueries({ queryKey: memberKeys.list(roomId) });
     },
   });
