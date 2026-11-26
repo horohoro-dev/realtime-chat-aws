@@ -26,17 +26,14 @@ export function RoomCreatePage() {
     createRoom.mutate(
       { name },
       {
+        // 作成に成功したら、画面が移り終わるまで送信を止めたままにする
         onSuccess: async (result) => {
           if (result.status === "created") {
             await navigate(`/rooms/${result.room.id}`);
           }
+          submitLock.release();
         },
-        // 作成に成功したら画面が移るので、移るまでのあいだ送信を止めたままにする
-        onSettled: (result) => {
-          if (result?.status !== "created") {
-            submitLock.release();
-          }
-        },
+        onError: submitLock.release,
       },
     );
   }
