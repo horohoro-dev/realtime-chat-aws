@@ -154,7 +154,8 @@ function ChatRoom({ roomId }: { roomId: number }) {
       </p>
     );
   }
-  if (room.isError) {
+  // 取り直しが失敗しても、前に取れたルームがあれば画面を出したままにする
+  if (room.data === undefined) {
     return (
       <Alert tone="error">
         ルームを取得できませんでした。時間をおいて、ページを読み込み直してください。

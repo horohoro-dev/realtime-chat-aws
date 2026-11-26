@@ -37,6 +37,30 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
+// 最初の取得だけ 200 で、そのあとは 404 を返す。画面を開いたあとにルームがなくなった場合
+function serveRoomRemovedAfterFirstGet() {
+  const receiveGet = vi.fn();
+  server.use(
+    http.get("/api/rooms/3/", () => {
+      receiveGet();
+      return receiveGet.mock.calls.length === 1
+        ? HttpResponse.json(room)
+        : HttpResponse.json({ detail: "Not found." }, { status: 404 });
+    }),
+  );
+  return receiveGet;
+}
+
+const notFound = () => HttpResponse.json({ detail: "Not found." }, { status: 404 });
+
+async function expectRoomNotFound() {
+  expect(
+    await screen.findByRole("heading", { level: 2, name: "ルームが見つかりません" }),
+  ).toBeInTheDocument();
+  expect(screen.getByRole("link", { name: "ルームの一覧へ戻る" })).toHaveAttribute("href", "/");
+  expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+}
+
 async function submitBody(body: string) {
   const input = await screen.findByRole("textbox", { name: "メッセージ" });
   fireEvent.change(input, { target: { value: body } });
@@ -264,6 +288,95 @@ describe("チャット", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent("メッセージを取得できませんでした");
   });
+
+  it("送信が 404 で、ルームも 404 になったら、「ルームが見つかりません」を出す", async () => {
+    const receiveRoomGet = serveRoomRemovedAfterFirstGet();
+    server.use(
+      http.get("/api/rooms/3/messages/", () => HttpResponse.json([])),
+      http.post("/api/rooms/3/messages/", notFound),
+    );
+
+    renderRoute("/rooms/3");
+    await submitBody("こんにちは");
+
+    await expectRoomNotFound();
+    expect(receiveRoomGet).toHaveBeenCalledTimes(2);
+  });
+
+  it("送信が 404 でも、ルームを取得できたら、エラーの Alert を出す", async () => {
+    server.use(
+      http.get("/api/rooms/3/messages/", () => HttpResponse.json([])),
+      http.post("/api/rooms/3/messages/", notFound),
+    );
+
+    renderRoute("/rooms/3");
+    await submitBody("こんにちは");
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("メッセージを送信できませんでした");
+    expect(screen.getByRole("heading", { level: 2, name: "雑談" })).toBeInTheDocument();
+  });
+
+  it("メッセージの取得が 404 で、ルームも 404 になったら、「ルームが見つかりません」を出し、取り直しを止める", async () => {
+    vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
+    const receiveRoomGet = serveRoomRemovedAfterFirstGet();
+    const receiveMessagesGet = vi.fn();
+    server.use(
+      http.get("/api/rooms/3/messages/", () => {
+        receiveMessagesGet();
+        return notFound();
+      }),
+    );
+
+    renderRoute("/rooms/3");
+
+    await expectRoomNotFound();
+    expect(receiveRoomGet).toHaveBeenCalledTimes(2);
+    expect(receiveMessagesGet).toHaveBeenCalledOnce();
+    await vi.advanceTimersByTimeAsync(6000);
+    expect(receiveMessagesGet).toHaveBeenCalledOnce();
+    expect(receiveRoomGet).toHaveBeenCalledTimes(2);
+  });
+
+  it("メッセージの取得が 404 なら、ルームを取得できても、メッセージの取り直しを止める", async () => {
+    vi.useFakeTimers({ toFake: ["setInterval", "clearInterval"] });
+    const receiveMessagesGet = vi.fn();
+    server.use(
+      http.get("/api/rooms/3/messages/", () => {
+        receiveMessagesGet();
+        return notFound();
+      }),
+    );
+
+    renderRoute("/rooms/3");
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("メッセージを取得できませんでした");
+    await vi.advanceTimersByTimeAsync(6000);
+    expect(receiveMessagesGet).toHaveBeenCalledOnce();
+  });
+
+  it("送信の 404 のあと、ルームの取り直しが失敗しても、チャットの画面を出したままにする", async () => {
+    const receiveRoomGet = vi.fn();
+    server.use(
+      http.get("/api/rooms/3/", () => {
+        receiveRoomGet();
+        return receiveRoomGet.mock.calls.length === 1
+          ? HttpResponse.json(room)
+          : new HttpResponse(null, { status: 500 });
+      }),
+      http.get("/api/rooms/3/messages/", () => HttpResponse.json([])),
+      http.post("/api/rooms/3/messages/", notFound),
+    );
+
+    renderRoute("/rooms/3");
+    await submitBody("こんにちは");
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("メッセージを送信できませんでした");
+    await vi.waitFor(() => {
+      expect(receiveRoomGet).toHaveBeenCalledTimes(5);
+    });
+    expect(screen.getByRole("heading", { level: 2, name: "雑談" })).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "メッセージ" })).toBeInTheDocument();
+  });
 });
 
 async function submitUsername(username: string) {
@@ -458,5 +571,26 @@ describe("メンバー", () => {
     renderRoute("/rooms/3");
 
     expect(await screen.findByRole("alert")).toHaveTextContent("メンバーを取得できませんでした");
+  });
+
+  it("招待が 404 で、ルームも 404 になったら、「ルームが見つかりません」を出す", async () => {
+    const receiveRoomGet = serveRoomRemovedAfterFirstGet();
+    server.use(http.post("/api/rooms/3/members/", notFound));
+
+    renderRoute("/rooms/3");
+    await submitUsername("carol");
+
+    await expectRoomNotFound();
+    expect(receiveRoomGet).toHaveBeenCalledTimes(2);
+  });
+
+  it("メンバーの取得が 404 で、ルームも 404 になったら、「ルームが見つかりません」を出す", async () => {
+    const receiveRoomGet = serveRoomRemovedAfterFirstGet();
+    server.use(http.get("/api/rooms/3/members/", notFound));
+
+    renderRoute("/rooms/3");
+
+    await expectRoomNotFound();
+    expect(receiveRoomGet).toHaveBeenCalledTimes(2);
   });
 });
