@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { client } from "../client.ts";
+import { createApiError } from "../errors.ts";
 import type { components } from "../schema.d.ts";
 import { roomKeys } from "./rooms.ts";
 
@@ -39,7 +40,10 @@ export function useMessages(roomId: number) {
         params: { path: { room_id: roomId } },
       });
       if (data === undefined) {
-        throw new Error(`GET /api/rooms/${roomId}/messages/ が失敗しました（${response.status}）`);
+        throw createApiError(
+          `GET /api/rooms/${roomId}/messages/ が失敗しました（${response.status}）`,
+          response.status,
+        );
       }
       return data;
     },
@@ -61,7 +65,10 @@ export function useSendMessage(roomId: number) {
         return { status: "invalid", errors };
       }
       if (data === undefined) {
-        throw new Error(`POST /api/rooms/${roomId}/messages/ が失敗しました（${response.status}）`);
+        throw createApiError(
+          `POST /api/rooms/${roomId}/messages/ が失敗しました（${response.status}）`,
+          response.status,
+        );
       }
       return { status: "sent", message: data };
     },

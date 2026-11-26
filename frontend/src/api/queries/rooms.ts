@@ -58,7 +58,10 @@ export function useRoom(roomId: number) {
         return null;
       }
       if (data === undefined) {
-        throw new Error(`GET /api/rooms/${roomId}/ が失敗しました（${response.status}）`);
+        throw createApiError(
+          `GET /api/rooms/${roomId}/ が失敗しました（${response.status}）`,
+          response.status,
+        );
       }
       return data;
     },
