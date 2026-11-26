@@ -178,6 +178,57 @@ describe("チャット", () => {
     expect(input).toHaveValue("次の本文");
   });
 
+  it("送信の状態が画面に届く前にもう一度送っても POST は1回", async () => {
+    const receivePost = vi.fn();
+    server.use(
+      http.get("/api/rooms/3/messages/", () => HttpResponse.json([firstMessage])),
+      http.post("/api/rooms/3/messages/", async ({ request }) => {
+        receivePost(await request.json());
+        return HttpResponse.json({ ...secondMessage, sender: alice }, { status: 201 });
+      }),
+    );
+
+    renderRoute("/rooms/3");
+    await screen.findByText("おはようございます");
+    const input = await screen.findByRole("textbox", { name: "メッセージ" });
+    fireEvent.change(input, { target: { value: "今日もよろしく" } });
+    const form = input.closest("form") as HTMLFormElement;
+    fireEvent.submit(form);
+    fireEvent.submit(form);
+
+    await vi.waitFor(() => {
+      expect(input).toHaveValue("");
+    });
+    await vi.waitFor(() => {
+      expect(screen.getByRole("button", { name: "送信する" })).not.toHaveAttribute("aria-disabled");
+    });
+    expect(receivePost).toHaveBeenCalledExactlyOnceWith({ body: "今日もよろしく" });
+  });
+
+  it("送信が終わったあとは、次の本文を送れる", async () => {
+    const receivePost = vi.fn();
+    server.use(
+      http.get("/api/rooms/3/messages/", () => HttpResponse.json([firstMessage])),
+      http.post("/api/rooms/3/messages/", async ({ request }) => {
+        receivePost(await request.json());
+        return HttpResponse.json({ ...secondMessage, sender: alice }, { status: 201 });
+      }),
+    );
+
+    renderRoute("/rooms/3");
+    await screen.findByText("おはようございます");
+    const input = await submitBody("今日もよろしく");
+    await vi.waitFor(() => {
+      expect(input).toHaveValue("");
+    });
+    await submitBody("次の本文");
+
+    await vi.waitFor(() => {
+      expect(receivePost).toHaveBeenCalledTimes(2);
+    });
+    expect(receivePost).toHaveBeenLastCalledWith({ body: "次の本文" });
+  });
+
   it("送信の途中に打ち直した本文は、送った本文と同じでも残す", async () => {
     const postResponse: { resolve: () => void } = { resolve: () => undefined };
     const postResponded = new Promise<void>((resolve) => {
@@ -461,6 +512,55 @@ describe("メンバー", () => {
     });
     expect(receivePost).toHaveBeenCalledExactlyOnceWith({ username: "carol" });
     expect(input).toHaveValue("dave");
+  });
+
+  it("招待の状態が画面に届く前にもう一度送っても POST は1回", async () => {
+    const receivePost = vi.fn();
+    server.use(
+      http.post("/api/rooms/3/members/", async ({ request }) => {
+        receivePost(await request.json());
+        return HttpResponse.json(carolMember, { status: 201 });
+      }),
+    );
+
+    renderRoute("/rooms/3");
+    const input = await screen.findByRole("textbox", { name: "招待する利用者名" });
+    fireEvent.change(input, { target: { value: "carol" } });
+    const form = input.closest("form") as HTMLFormElement;
+    fireEvent.submit(form);
+    fireEvent.submit(form);
+
+    await vi.waitFor(() => {
+      expect(input).toHaveValue("");
+    });
+    await vi.waitFor(() => {
+      expect(screen.getByRole("button", { name: "招待する" })).not.toHaveAttribute("aria-disabled");
+    });
+    expect(receivePost).toHaveBeenCalledExactlyOnceWith({ username: "carol" });
+  });
+
+  it("400 のあとは、利用者名を直してもう一度招待できる", async () => {
+    const receivePost = vi.fn();
+    server.use(
+      http.post("/api/rooms/3/members/", async ({ request }) => {
+        const body = await request.json();
+        receivePost(body);
+        return receivePost.mock.calls.length === 1
+          ? HttpResponse.json({ username: ["この利用者はいません。"] }, { status: 400 })
+          : HttpResponse.json(carolMember, { status: 201 });
+      }),
+    );
+
+    renderRoute("/rooms/3");
+    await submitUsername("nobody");
+    expect(await screen.findByText("この利用者はいません。")).toBeInTheDocument();
+    const input = await submitUsername("carol");
+
+    await vi.waitFor(() => {
+      expect(input).toHaveValue("");
+    });
+    expect(receivePost).toHaveBeenCalledTimes(2);
+    expect(receivePost).toHaveBeenLastCalledWith({ username: "carol" });
   });
 
   it("400 のときは、入力欄の下に username の項目の誤りを出し、入力を残す", async () => {
