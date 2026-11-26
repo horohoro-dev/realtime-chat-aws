@@ -1,0 +1,55 @@
+import { screen } from "@testing-library/react";
+import { HttpResponse, http } from "msw";
+import { beforeEach, describe, expect, it } from "vitest";
+import { renderRoute } from "../test/renderRoute.tsx";
+import { server } from "../test/server.ts";
+
+const alice = { id: 1, username: "alice" };
+
+beforeEach(() => {
+  server.use(http.get("/api/me/", () => HttpResponse.json(alice)));
+});
+
+describe("ルームの一覧", () => {
+  it("ルームの名前と、各ルームのチャットの画面へのリンクを出す", async () => {
+    server.use(
+      http.get("/api/rooms/", () =>
+        HttpResponse.json([
+          { id: 3, name: "雑談", created_by: alice, created_at: "2026-11-02T09:00:00Z" },
+          { id: 2, name: "開発の相談", created_by: alice, created_at: "2026-11-01T09:00:00Z" },
+        ]),
+      ),
+    );
+
+    renderRoute("/");
+
+    expect(await screen.findByRole("link", { name: "雑談" })).toHaveAttribute("href", "/rooms/3");
+    expect(screen.getByRole("link", { name: "開発の相談" })).toHaveAttribute("href", "/rooms/2");
+    expect(screen.getByRole("link", { name: "ルームを作る" })).toHaveAttribute(
+      "href",
+      "/rooms/new",
+    );
+  });
+
+  it("ルームがないときは、その旨と作成の画面へのリンクを出す", async () => {
+    server.use(http.get("/api/rooms/", () => HttpResponse.json([])));
+
+    renderRoute("/");
+
+    expect(await screen.findByText("参加しているルームはまだありません。")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "ルームを作る" })).toHaveAttribute(
+      "href",
+      "/rooms/new",
+    );
+  });
+
+  it("取得に失敗したら、エラーの Alert を出す", async () => {
+    server.use(http.get("/api/rooms/", () => new HttpResponse(null, { status: 500 })));
+
+    renderRoute("/");
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "ルームの一覧を取得できませんでした",
+    );
+  });
+});
