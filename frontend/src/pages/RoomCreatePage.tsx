@@ -1,4 +1,4 @@
-import type { FormEvent } from "react";
+import { type FormEvent, useState } from "react";
 import { useNavigate } from "react-router";
 import { useCreateRoom } from "../api/queries/rooms.ts";
 import { Alert } from "../components/ui/Alert.tsx";
@@ -9,12 +9,16 @@ import { TextField } from "../components/ui/TextField.tsx";
 export function RoomCreatePage() {
   const navigate = useNavigate();
   const createRoom = useCreateRoom();
-  const validationErrors = createRoom.data?.status === "invalid" ? createRoom.data.errors : {};
+  const [name, setName] = useState("");
+  const validationErrors =
+    createRoom.data?.status === "invalid" && createRoom.variables?.name === name
+      ? createRoom.data.errors
+      : {};
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const name = new FormData(event.currentTarget).get("name");
-    if (typeof name !== "string") {
+    // React Aria の Button は isPending の間 submit を止めるが、入力欄での Enter による送信は止めない
+    if (createRoom.isPending) {
       return;
     }
     createRoom.mutate(
@@ -39,7 +43,7 @@ export function RoomCreatePage() {
       ) : null}
       <Form onSubmit={handleSubmit} validationErrors={validationErrors}>
         {/* 名前の文字数の上限はバックエンドだけが検査し、超えたら 400 の name の誤りで返る */}
-        <TextField name="name" label="ルームの名前" isRequired />
+        <TextField name="name" label="ルームの名前" value={name} onChange={setName} isRequired />
         <Button type="submit" isPending={createRoom.isPending}>
           作成する
         </Button>
