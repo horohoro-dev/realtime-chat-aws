@@ -15,7 +15,6 @@ class RoomSerializer(serializers.ModelSerializer):
 
 class MessageSerializer(serializers.ModelSerializer):
     sender = UserSerializer(read_only=True)
-    body = serializers.CharField(max_length=2000)
 
     class Meta:
         model = Message
