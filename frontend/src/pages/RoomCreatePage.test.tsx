@@ -20,20 +20,25 @@ async function submitName(name: string) {
 describe("ルームの作成", () => {
   it("作成に成功したら、そのルームのチャットの画面へ移る", async () => {
     const receive = vi.fn();
+    const created = {
+      id: 7,
+      name: "読書会",
+      created_by: alice,
+      created_at: "2026-11-03T09:00:00Z",
+    };
     server.use(
       http.post("/api/rooms/", async ({ request }) => {
         receive(await request.json());
-        return HttpResponse.json(
-          { id: 7, name: "読書会", created_by: alice, created_at: "2026-11-03T09:00:00Z" },
-          { status: 201 },
-        );
+        return HttpResponse.json(created, { status: 201 });
       }),
+      http.get("/api/rooms/7/", () => HttpResponse.json(created)),
+      http.get("/api/rooms/7/messages/", () => HttpResponse.json([])),
     );
 
     renderRoute("/rooms/new");
     await submitName("読書会");
 
-    expect(await screen.findByRole("heading", { level: 2, name: "ルーム 7" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 2, name: "読書会" })).toBeInTheDocument();
     expect(receive).toHaveBeenCalledExactlyOnceWith({ name: "読書会" });
   });
 

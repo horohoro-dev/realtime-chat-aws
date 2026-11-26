@@ -15,6 +15,7 @@ export type CreateRoomResult =
 export const roomKeys = {
   all: ["rooms"] as const,
   list: () => [...roomKeys.all, "list"] as const,
+  detail: (roomId: number) => [...roomKeys.all, "detail", roomId] as const,
 };
 
 function isStringArray(value: unknown): value is string[] {
@@ -37,6 +38,28 @@ export function useRooms() {
       if (data === undefined) {
         throw createApiError(
           `GET /api/rooms/ が失敗しました（${response.status}）`,
+          response.status,
+        );
+      }
+      return data;
+    },
+  });
+}
+
+// ルームがないときと、自分がメンバーでないときは、API が 404 を返す。どちらも null として返す
+export function useRoom(roomId: number) {
+  return useQuery({
+    queryKey: roomKeys.detail(roomId),
+    queryFn: async () => {
+      const { data, response } = await client.GET("/api/rooms/{room_id}/", {
+        params: { path: { room_id: roomId } },
+      });
+      if (response.status === 404) {
+        return null;
+      }
+      if (data === undefined) {
+        throw createApiError(
+          `GET /api/rooms/${roomId}/ が失敗しました（${response.status}）`,
           response.status,
         );
       }
