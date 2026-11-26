@@ -18,5 +18,7 @@ export default defineConfig({
     setupFiles: ["./src/test/setup.ts"],
     // e2e/ は Playwright のテスト
     include: ["src/**/*.test.{ts,tsx}"],
+    // 日時の表示はブラウザのタイムゾーンで決まるので、テストは UTC にそろえる
+    env: { TZ: "UTC" },
   },
 });

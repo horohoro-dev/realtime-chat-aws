@@ -90,12 +90,18 @@ function MessageForm({ roomId }: { roomId: number }) {
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    // 送信の途中は送信のボタンが submit でなくなるが、Enter での送信は止まらない
+    if (sendMessage.isPending) {
+      return;
+    }
+    const sent = body;
     sendMessage.mutate(
-      { body },
+      { body: sent },
       {
         onSuccess: (result) => {
           if (result.status === "sent") {
-            setBody("");
+            // 送信の途中に打ち始めた次の本文は残す
+            setBody((current) => (current === sent ? "" : current));
           }
         },
       },

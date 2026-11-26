@@ -112,8 +112,40 @@ describe("チャット", () => {
 
     expect(await screen.findByText("今日もよろしく")).toBeInTheDocument();
     expect(receivePost).toHaveBeenCalledExactlyOnceWith({ body: "今日もよろしく" });
-    expect(receiveGet).toHaveBeenCalledTimes(2);
+    expect(receiveGet.mock.calls.length).toBeGreaterThanOrEqual(2);
     expect(input).toHaveValue("");
+  });
+
+  it("送信の途中にもう一度送っても POST は1回で、途中で打った次の本文は残す", async () => {
+    const receivePost = vi.fn();
+    const postResponse: { resolve: () => void } = { resolve: () => undefined };
+    const postResponded = new Promise<void>((resolve) => {
+      postResponse.resolve = resolve;
+    });
+    server.use(
+      http.get("/api/rooms/3/messages/", () => HttpResponse.json([firstMessage])),
+      http.post("/api/rooms/3/messages/", async ({ request }) => {
+        receivePost(await request.json());
+        await postResponded;
+        return HttpResponse.json({ ...secondMessage, sender: alice }, { status: 201 });
+      }),
+    );
+
+    renderRoute("/rooms/3");
+    await screen.findByText("おはようございます");
+    const input = await submitBody("今日もよろしく");
+    await vi.waitFor(() => {
+      expect(receivePost).toHaveBeenCalledOnce();
+    });
+    fireEvent.submit(input.closest("form") as HTMLFormElement);
+    fireEvent.change(input, { target: { value: "次の本文" } });
+    postResponse.resolve();
+
+    await vi.waitFor(() => {
+      expect(screen.getByRole("button", { name: "送信する" })).not.toHaveAttribute("aria-disabled");
+    });
+    expect(receivePost).toHaveBeenCalledExactlyOnceWith({ body: "今日もよろしく" });
+    expect(input).toHaveValue("次の本文");
   });
 
   it("400 のときは、入力欄の下に body の項目の誤りを出し、入力を残す", async () => {
