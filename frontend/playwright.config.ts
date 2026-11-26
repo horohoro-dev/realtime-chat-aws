@@ -49,7 +49,8 @@ export default defineConfig({
       command: `pnpm exec vite build && pnpm exec vite preview --port ${port} --strictPort`,
       env: { API_PROXY_TARGET: apiOrigin },
       url: `http://localhost:${port}`,
-      reuseExistingServer: !isCi,
+      // 動いている vite preview を使い回すと、/api の転送先が E2E の Django にならないことがある
+      reuseExistingServer: false,
       timeout: 120_000,
     },
   ],
