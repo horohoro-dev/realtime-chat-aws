@@ -129,4 +129,50 @@ describe("ルームの一覧", () => {
     );
     expect(receiveRooms).toHaveBeenCalledOnce();
   });
+
+  it("画面を開いたあとにセッションが切れたら、ログインの画面へのリンクを出す", async () => {
+    const receiveMe = vi.fn();
+    server.use(
+      http.get("/api/me/", () => {
+        receiveMe();
+        return receiveMe.mock.calls.length === 1
+          ? HttpResponse.json(alice)
+          : new HttpResponse(null, { status: 403 });
+      }),
+      http.get("/api/rooms/", () => new HttpResponse(null, { status: 403 })),
+    );
+
+    renderRoute("/");
+
+    expect(await screen.findByRole("link", { name: "ログインする" })).toHaveAttribute(
+      "href",
+      `/api/auth/login/?next=${encodeURIComponent("/")}`,
+    );
+    expect(screen.queryByRole("heading", { level: 2 })).not.toBeInTheDocument();
+    expect(receiveMe).toHaveBeenCalledTimes(2);
+  });
+
+  it("403 のあとのログインの確認が失敗しても、前に取れた利用者のまま画面を出す", async () => {
+    const receiveMe = vi.fn();
+    server.use(
+      http.get("/api/me/", () => {
+        receiveMe();
+        return receiveMe.mock.calls.length === 1
+          ? HttpResponse.json(alice)
+          : new HttpResponse(null, { status: 500 });
+      }),
+      http.get("/api/rooms/", () => new HttpResponse(null, { status: 403 })),
+    );
+
+    renderRoute("/");
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "ルームの一覧を取得できませんでした",
+    );
+    await vi.waitFor(() => {
+      expect(receiveMe).toHaveBeenCalledTimes(5);
+    });
+    expect(screen.getByText("alice でログイン中")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent("ルームの一覧");
+  });
 });
