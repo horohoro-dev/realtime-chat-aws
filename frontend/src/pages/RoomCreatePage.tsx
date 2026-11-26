@@ -5,10 +5,12 @@ import { Alert } from "../components/ui/Alert.tsx";
 import { Button } from "../components/ui/Button.tsx";
 import { Form } from "../components/ui/Form.tsx";
 import { TextField } from "../components/ui/TextField.tsx";
+import { useSubmitLock } from "../hooks/useSubmitLock.ts";
 
 export function RoomCreatePage() {
   const navigate = useNavigate();
   const createRoom = useCreateRoom();
+  const submitLock = useSubmitLock();
   const [name, setName] = useState("");
   const validationErrors =
     createRoom.data?.status === "invalid" && createRoom.variables?.name === name
@@ -18,7 +20,7 @@ export function RoomCreatePage() {
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     // React Aria の Button は isPending の間 submit を止めるが、入力欄での Enter による送信は止めない
-    if (createRoom.isPending) {
+    if (!submitLock.acquire()) {
       return;
     }
     createRoom.mutate(
@@ -29,6 +31,7 @@ export function RoomCreatePage() {
             await navigate(`/rooms/${result.room.id}`);
           }
         },
+        onSettled: submitLock.release,
       },
     );
   }

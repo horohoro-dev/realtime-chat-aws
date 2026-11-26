@@ -5,6 +5,7 @@ import { Alert } from "../components/ui/Alert.tsx";
 import { Button } from "../components/ui/Button.tsx";
 import { Form } from "../components/ui/Form.tsx";
 import { TextField } from "../components/ui/TextField.tsx";
+import { useSubmitLock } from "../hooks/useSubmitLock.ts";
 
 type Member = components["schemas"]["Member"];
 
@@ -46,6 +47,7 @@ function InviteForm({ roomId }: { roomId: number }) {
   // edits は入力が変わるたびに増える。同じ利用者名を打ち直した場合も含めて、招待の途中に入力が変わったかをこの回数で見分ける
   const [draft, setDraft] = useState({ username: "", edits: 0 });
   const inviteMember = useInviteMember(roomId);
+  const submitLock = useSubmitLock();
   // 送った値から入力が変わったら、その値への誤りは出さない
   const validationErrors =
     inviteMember.data?.status === "invalid" && inviteMember.variables?.username === draft.username
@@ -55,7 +57,7 @@ function InviteForm({ roomId }: { roomId: number }) {
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     // React Aria の Button は isPending の間 submit を止めるが、入力欄での Enter による送信は止めない
-    if (inviteMember.isPending) {
+    if (!submitLock.acquire()) {
       return;
     }
     const editsAtSend = draft.edits;
@@ -70,6 +72,7 @@ function InviteForm({ roomId }: { roomId: number }) {
             );
           }
         },
+        onSettled: submitLock.release,
       },
     );
   }

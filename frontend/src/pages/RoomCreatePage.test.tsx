@@ -109,6 +109,62 @@ describe("ルームの作成", () => {
     expect(receive).toHaveBeenCalledExactlyOnceWith({ name: "読書会" });
   });
 
+  it("作成の状態が画面に届く前にもう一度送っても POST は1回", async () => {
+    const receive = vi.fn();
+    const created = {
+      id: 7,
+      name: "読書会",
+      created_by: alice,
+      created_at: "2026-11-03T09:00:00Z",
+    };
+    server.use(
+      http.post("/api/rooms/", async ({ request }) => {
+        receive(await request.json());
+        return HttpResponse.json(created, { status: 201 });
+      }),
+      http.get("/api/rooms/7/", () => HttpResponse.json(created)),
+      http.get("/api/rooms/7/messages/", () => HttpResponse.json([])),
+      http.get("/api/rooms/7/members/", () => HttpResponse.json([])),
+    );
+
+    renderRoute("/rooms/new");
+    const input = await screen.findByRole("textbox", { name: "ルームの名前" });
+    fireEvent.change(input, { target: { value: "読書会" } });
+    const form = input.closest("form") as HTMLFormElement;
+    fireEvent.submit(form);
+    fireEvent.submit(form);
+
+    expect(await screen.findByRole("heading", { level: 2, name: "読書会" })).toBeInTheDocument();
+    expect(receive).toHaveBeenCalledExactlyOnceWith({ name: "読書会" });
+  });
+
+  it.each([
+    ["400", () => HttpResponse.json({ name: ["この名前は使えません。"] }, { status: 400 })],
+    ["500", () => new HttpResponse(null, { status: 500 })],
+  ])("作成が %s で終わったあとは、もう一度送れる", async (_label, firstResponse) => {
+    const receive = vi.fn();
+    server.use(
+      http.post("/api/rooms/", () => {
+        receive();
+        return firstResponse();
+      }),
+    );
+
+    renderRoute("/rooms/new");
+    await submitName("読書会");
+    await vi.waitFor(() => {
+      expect(receive).toHaveBeenCalledOnce();
+    });
+    await vi.waitFor(() => {
+      expect(screen.getByRole("button", { name: "作成する" })).not.toHaveAttribute("aria-disabled");
+    });
+    await submitName("勉強会");
+
+    await vi.waitFor(() => {
+      expect(receive).toHaveBeenCalledTimes(2);
+    });
+  });
+
   it("作成の途中に名前を変えたら、送った名前への誤りは出さない", async () => {
     const receive = vi.fn();
     const postResponse: { resolve: () => void } = { resolve: () => undefined };
