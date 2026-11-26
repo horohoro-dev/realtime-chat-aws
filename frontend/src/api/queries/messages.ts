@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { client } from "../client.ts";
-import { createApiError } from "../errors.ts";
+import { createApiError, isApiError } from "../errors.ts";
 import { fieldErrorMessages } from "../fieldErrors.ts";
 import type { components } from "../schema.d.ts";
 import { roomKeys } from "./rooms.ts";
@@ -36,7 +36,11 @@ export function useMessages(roomId: number) {
       }
       return data;
     },
-    refetchInterval: MESSAGES_REFETCH_INTERVAL_MS,
+    // 404 はルームがないか、メンバーでないことを表すので、取り直しても変わらない
+    refetchInterval: (query) =>
+      isApiError(query.state.error) && query.state.error.status === 404
+        ? false
+        : MESSAGES_REFETCH_INTERVAL_MS,
   });
 }
 
@@ -44,6 +48,7 @@ export function useMessages(roomId: number) {
 export function useSendMessage(roomId: number) {
   const queryClient = useQueryClient();
   return useMutation({
+    mutationKey: messageKeys.list(roomId),
     mutationFn: async (body: MessageRequest): Promise<SendMessageResult> => {
       const { data, error, response } = await client.POST("/api/rooms/{room_id}/messages/", {
         params: { path: { room_id: roomId } },
