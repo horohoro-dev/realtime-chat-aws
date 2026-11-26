@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { Text } from "react-aria-components";
 
 type AlertTone = "info" | "error";
 
@@ -13,11 +14,16 @@ const toneStyles: Record<AlertTone, { role: "status" | "alert"; className: strin
   error: { role: "alert", className: "border-red-300 bg-red-50 text-red-900" },
 };
 
+// React Aria Components 1.22 にはインラインの通知の部品がないため、Text を div として描画する
 export function Alert({ tone = "info", children }: AlertProps) {
   const { role, className } = toneStyles[tone];
   return (
-    <div role={role} className={`rounded-md border px-4 py-3 text-sm ${className}`}>
+    <Text
+      elementType="div"
+      role={role}
+      className={`rounded-md border px-4 py-3 text-sm ${className}`}
+    >
       {children}
-    </div>
+    </Text>
   );
 }
