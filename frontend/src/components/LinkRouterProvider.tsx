@@ -6,20 +6,18 @@ type LinkRouterProviderProps = {
   children: ReactNode;
 };
 
-// /api/ の下はサーバーが返す画面（ログインなど）なので、ブラウザに読み込ませる
-function useLinkNavigate() {
+// React Router の basename を使っていないので、href は書いたパスのまま a 要素に出る
+export function LinkRouterProvider({ children }: LinkRouterProviderProps) {
   const navigate = useNavigate();
-  return (path: string) => {
+
+  function navigateLink(path: string) {
+    // /api/ の下はサーバーが返す画面（ログインなど）なので、ブラウザに読み込ませる
     if (path.startsWith("/api/")) {
       window.location.assign(path);
       return;
     }
     void navigate(path);
-  };
-}
+  }
 
-// React Router の basename を使っていないので、href は書いたパスのまま a 要素に出る
-export function LinkRouterProvider({ children }: LinkRouterProviderProps) {
-  const navigate = useLinkNavigate();
-  return <RouterProvider navigate={navigate}>{children}</RouterProvider>;
+  return <RouterProvider navigate={navigateLink}>{children}</RouterProvider>;
 }
