@@ -53,6 +53,29 @@ describe("ルームの作成", () => {
     expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent("ルームの作成");
   });
 
+  it("長すぎる名前も切らずに送り、サーバーの誤りを入力欄の下に出す", async () => {
+    const receive = vi.fn();
+    const longName = "あ".repeat(51);
+    server.use(
+      http.post("/api/rooms/", async ({ request }) => {
+        receive(await request.json());
+        return HttpResponse.json(
+          { name: ["この項目が50文字より長くならないようにしてください。"] },
+          { status: 400 },
+        );
+      }),
+    );
+
+    renderRoute("/rooms/new");
+    const input = await submitName(longName);
+
+    expect(input).not.toHaveAttribute("maxlength");
+    expect(
+      await screen.findByText("この項目が50文字より長くならないようにしてください。"),
+    ).toBeInTheDocument();
+    expect(receive).toHaveBeenCalledExactlyOnceWith({ name: longName });
+  });
+
   it("400 以外の失敗なら、エラーの Alert を出す", async () => {
     server.use(http.post("/api/rooms/", () => new HttpResponse(null, { status: 500 })));
 

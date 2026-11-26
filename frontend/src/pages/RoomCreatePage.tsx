@@ -6,9 +6,6 @@ import { Button } from "../components/ui/Button.tsx";
 import { Form } from "../components/ui/Form.tsx";
 import { TextField } from "../components/ui/TextField.tsx";
 
-// backend の Room.name の max_length と同じ値
-const NAME_MAX_LENGTH = 50;
-
 function useRoomCreateForm() {
   const navigate = useNavigate();
   const createRoom = useCreateRoom();
@@ -48,7 +45,8 @@ export function RoomCreatePage() {
         </Alert>
       ) : null}
       <Form onSubmit={form.onSubmit} validationErrors={validationErrors}>
-        <TextField name="name" label="ルームの名前" isRequired maxLength={NAME_MAX_LENGTH} />
+        {/* 名前の文字数の上限はバックエンドだけが検査し、超えたら 400 の name の誤りで返る */}
+        <TextField name="name" label="ルームの名前" isRequired />
         <Button type="submit" isPending={createRoom.isPending}>
           作成する
         </Button>
