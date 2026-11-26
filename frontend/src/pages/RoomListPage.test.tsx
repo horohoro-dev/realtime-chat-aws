@@ -95,4 +95,38 @@ describe("ルームの一覧", () => {
       "ルームの一覧を取得できませんでした",
     );
   });
+
+  it("500 のときは、最初の 1 回のあと 3 回やり直してから Alert を出す", async () => {
+    const receiveRooms = vi.fn();
+    server.use(
+      http.get("/api/rooms/", () => {
+        receiveRooms();
+        return new HttpResponse(null, { status: 500 });
+      }),
+    );
+
+    renderRoute("/");
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "ルームの一覧を取得できませんでした",
+    );
+    expect(receiveRooms).toHaveBeenCalledTimes(4);
+  });
+
+  it("403 のときは、やり直さずに Alert を出す", async () => {
+    const receiveRooms = vi.fn();
+    server.use(
+      http.get("/api/rooms/", () => {
+        receiveRooms();
+        return new HttpResponse(null, { status: 403 });
+      }),
+    );
+
+    renderRoute("/");
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "ルームの一覧を取得できませんでした",
+    );
+    expect(receiveRooms).toHaveBeenCalledOnce();
+  });
 });

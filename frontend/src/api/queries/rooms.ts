@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { client } from "../client.ts";
+import { createApiError } from "../errors.ts";
 import type { components } from "../schema.d.ts";
 
 type Room = components["schemas"]["Room"];
@@ -35,7 +36,10 @@ export function useRooms() {
     queryFn: async () => {
       const { data, response } = await client.GET("/api/rooms/");
       if (data === undefined) {
-        throw new Error(`GET /api/rooms/ が失敗しました（${response.status}）`);
+        throw createApiError(
+          `GET /api/rooms/ が失敗しました（${response.status}）`,
+          response.status,
+        );
       }
       return data;
     },
@@ -72,7 +76,10 @@ export function useCreateRoom() {
         return { status: "invalid", errors };
       }
       if (data === undefined) {
-        throw new Error(`POST /api/rooms/ が失敗しました（${response.status}）`);
+        throw createApiError(
+          `POST /api/rooms/ が失敗しました（${response.status}）`,
+          response.status,
+        );
       }
       return { status: "created", room: data };
     },
