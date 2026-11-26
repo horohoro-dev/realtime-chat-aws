@@ -69,6 +69,7 @@ API の応答は TanStack Query のキャッシュに置き、コンポーネン
 React Compiler（コンポーネントとフックのメモ化をビルド時に自動で入れるツール）を使います。設定は `vite.config.ts` にあり、`@rolldown/plugin-babel` で `@vitejs/plugin-react` の `reactCompilerPreset()` を通します。開発サーバー、本番のビルド、Vitest のすべてで働きます。
 
 - `useMemo`、`useCallback`、`memo` は書きません。プラグイン `no-manual-memo.grit` が検出します。
+- コンポーネントの中で作った関数は、そのまま JSX の属性に渡します（`onSubmit={handleSubmit}`、`onPress={() => setOpen(true)}`）。描画のたびに関数を作り直さないための使い回しは、compiler が入れます。同じ問題を `useCallback` で防がせる Biome の `performance/noJsxPropsBind` は、React の domain を `all` にすると有効になりますが、`no-manual-memo.grit` とぶつかるので `biome.json` で切っています。
 - メモ化を細かく決める必要があるときだけ、7章のとおり理由を書いて抑止します。React の公式の文書が例に挙げているのは、Effect の依存に渡す値を安定させる場面です。
 - compiler が安全に最適化できないコード（描画中に ref を読み書きするなど）は、`nursery/useReactCompiler` が検出します。このルールは、React Compiler を検査だけのモードで動かしたものです。
 - 4章の決まり（props と state を書き換えない、フックを最上位で呼ぶなど）は、compiler が前提にしている React の決まりそのものです。破ると、そのコンポーネントは最適化されないか、正しく動きません。
@@ -147,3 +148,4 @@ useEffect(() => {
 - Biome「Linter Plugins」 https://biomejs.dev/linter/plugins/
 - Biome「noRestrictedImports」 https://biomejs.dev/linter/rules/no-restricted-imports/
 - Biome「useExhaustiveDependencies」 https://biomejs.dev/linter/rules/use-exhaustive-dependencies/
+- Biome「noJsxPropsBind」 https://biomejs.dev/linter/rules/no-jsx-props-bind/
