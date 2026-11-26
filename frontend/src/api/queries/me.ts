@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { client } from "../client.ts";
+import { createApiError } from "../errors.ts";
 
 export const meKeys = {
   all: ["me"] as const,
@@ -15,7 +16,7 @@ export function useMe() {
         return null;
       }
       if (data === undefined) {
-        throw new Error(`GET /api/me/ が失敗しました（${response.status}）`);
+        throw createApiError(`GET /api/me/ が失敗しました（${response.status}）`, response.status);
       }
       return data;
     },
