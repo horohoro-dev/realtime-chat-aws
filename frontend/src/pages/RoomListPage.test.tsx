@@ -25,7 +25,7 @@ describe("ルームの一覧", () => {
 
     expect(await screen.findByRole("link", { name: "雑談" })).toHaveAttribute("href", "/rooms/3");
     expect(screen.getByRole("link", { name: "開発の相談" })).toHaveAttribute("href", "/rooms/2");
-    expect(screen.getByRole("link", { name: "ルームを作る" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "新しいルーム" })).toHaveAttribute(
       "href",
       "/rooms/new",
     );
@@ -63,14 +63,14 @@ describe("ルームの一覧", () => {
     expect(receiveMe).toHaveBeenCalledOnce();
   });
 
-  it("「ルームを作る」を押すと、React Router の遷移で作成の画面へ移る", async () => {
+  it("「新しいルーム」を押すと、React Router の遷移で作成の画面へ移る", async () => {
     server.use(http.get("/api/rooms/", () => HttpResponse.json([])));
 
     renderRoute("/");
-    fireEvent.click(await screen.findByRole("link", { name: "ルームを作る" }));
+    fireEvent.click(await screen.findByRole("link", { name: "新しいルーム" }));
 
     expect(
-      await screen.findByRole("heading", { level: 2, name: "ルームの作成" }),
+      await screen.findByRole("heading", { level: 2, name: "新しいルーム" }),
     ).toBeInTheDocument();
   });
 
@@ -79,8 +79,8 @@ describe("ルームの一覧", () => {
 
     renderRoute("/");
 
-    expect(await screen.findByText("参加しているルームはまだありません。")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "ルームを作る" })).toHaveAttribute(
+    expect(await screen.findByText("まだどのルームにも参加していません")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "最初のルームを作る" })).toHaveAttribute(
       "href",
       "/rooms/new",
     );
@@ -92,7 +92,7 @@ describe("ルームの一覧", () => {
     renderRoute("/");
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "ルームの一覧を取得できませんでした",
+      "ルームの一覧を読み込めませんでした",
     );
   });
 
@@ -108,7 +108,7 @@ describe("ルームの一覧", () => {
     renderRoute("/");
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "ルームの一覧を取得できませんでした",
+      "ルームの一覧を読み込めませんでした",
     );
     expect(receiveRooms).toHaveBeenCalledTimes(4);
   });
@@ -125,7 +125,7 @@ describe("ルームの一覧", () => {
     renderRoute("/");
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "ルームの一覧を取得できませんでした",
+      "ルームの一覧を読み込めませんでした",
     );
     expect(receiveRooms).toHaveBeenCalledOnce();
   });
@@ -167,12 +167,12 @@ describe("ルームの一覧", () => {
     renderRoute("/");
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "ルームの一覧を取得できませんでした",
+      "ルームの一覧を読み込めませんでした",
     );
     await vi.waitFor(() => {
       expect(receiveMe).toHaveBeenCalledTimes(5);
     });
     expect(screen.getByText("alice でログイン中")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent("ルームの一覧");
+    expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent("ルーム");
   });
 });

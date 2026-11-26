@@ -25,7 +25,7 @@ describe("ログインの確認", () => {
     renderRoute("/rooms/new");
 
     expect(await screen.findByText("alice でログイン中")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent("ルームの作成");
+    expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent("新しいルーム");
   });
 
   it("403 以外の失敗なら、エラーの Alert を出す", async () => {
@@ -34,7 +34,7 @@ describe("ログインの確認", () => {
     renderRoute("/");
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "利用者の情報を取得できませんでした",
+      "利用者の情報を読み込めませんでした",
     );
   });
 });

@@ -3,5 +3,5 @@ import { Form as AriaForm, type FormProps as AriaFormProps } from "react-aria-co
 type FormProps = Omit<AriaFormProps, "className">;
 
 export function Form(props: FormProps) {
-  return <AriaForm {...props} className="flex flex-col items-start gap-4" />;
+  return <AriaForm {...props} className="flex flex-col gap-5" />;
 }
