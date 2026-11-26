@@ -142,6 +142,9 @@
         "noUselessFragments": "error",
         "useSimplifiedLogicExpression": "error"
       },
+      "performance": {
+        "noJsxPropsBind": "off"
+      },
       "nursery": {
         "noReactDirectStateMutation": "error",
         "useReactCompiler": "error",
