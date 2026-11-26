@@ -4,18 +4,29 @@ import {
   FieldError,
   Input,
   Label,
+  Text,
 } from "react-aria-components";
 
 type TextFieldProps = Omit<AriaTextFieldProps, "className" | "children"> & {
   label: string;
+  description?: string;
+  placeholder?: string;
 };
 
-export function TextField({ label, ...props }: TextFieldProps) {
+export function TextField({ label, description, placeholder, ...props }: TextFieldProps) {
   return (
-    <AriaTextField {...props} className="flex flex-col gap-1">
-      <Label className="text-sm font-medium">{label}</Label>
-      <Input className="rounded-md border border-gray-300 px-3 py-2 outline-none invalid:border-red-600 focus-visible:ring-2 focus-visible:ring-sky-600" />
-      <FieldError className="text-sm text-red-700" />
+    <AriaTextField {...props} className="flex w-full flex-col gap-1.5">
+      <Label className="text-ink text-sm font-semibold">{label}</Label>
+      <Input
+        placeholder={placeholder}
+        className="border-rule bg-surface text-ink placeholder:text-muted/70 invalid:border-shu focus-visible:border-ai focus-visible:ring-ai/30 invalid:focus-visible:border-shu invalid:focus-visible:ring-shu/25 min-h-11 rounded-lg border px-3 text-base outline-none focus-visible:ring-2"
+      />
+      {description === undefined ? null : (
+        <Text slot="description" className="text-muted text-[13px] leading-relaxed">
+          {description}
+        </Text>
+      )}
+      <FieldError className="text-shu text-[13px] font-medium" />
     </AriaTextField>
   );
 }

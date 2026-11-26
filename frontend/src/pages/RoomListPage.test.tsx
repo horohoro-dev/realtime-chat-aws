@@ -25,6 +25,7 @@ describe("ルームの一覧", () => {
 
     expect(await screen.findByRole("link", { name: "雑談" })).toHaveAttribute("href", "/rooms/3");
     expect(screen.getByRole("link", { name: "開発の相談" })).toHaveAttribute("href", "/rooms/2");
+    expect(screen.getByText("alice さんが 11月2日 に作成")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "ルームを作る" })).toHaveAttribute(
       "href",
       "/rooms/new",
@@ -52,6 +53,7 @@ describe("ルームの一覧", () => {
         }),
       ),
       http.get("/api/rooms/3/messages/", () => HttpResponse.json([])),
+      http.get("/api/rooms/3/members/", () => HttpResponse.json([])),
     );
 
     renderRoute("/");
@@ -70,16 +72,16 @@ describe("ルームの一覧", () => {
     fireEvent.click(await screen.findByRole("link", { name: "ルームを作る" }));
 
     expect(
-      await screen.findByRole("heading", { level: 2, name: "ルームの作成" }),
+      await screen.findByRole("heading", { level: 2, name: "ルームを作る" }),
     ).toBeInTheDocument();
   });
 
-  it("ルームがないときは、その旨と作成の画面へのリンクを出す", async () => {
+  it("ルームがないときは、始め方と作成の画面へのリンクを出す", async () => {
     server.use(http.get("/api/rooms/", () => HttpResponse.json([])));
 
     renderRoute("/");
 
-    expect(await screen.findByText("参加しているルームはまだありません。")).toBeInTheDocument();
+    expect(await screen.findByText("まだどのルームにも参加していません。")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "ルームを作る" })).toHaveAttribute(
       "href",
       "/rooms/new",
@@ -173,6 +175,6 @@ describe("ルームの一覧", () => {
       expect(receiveMe).toHaveBeenCalledTimes(5);
     });
     expect(screen.getByText("alice でログイン中")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent("ルームの一覧");
+    expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent("参加しているルーム");
   });
 });

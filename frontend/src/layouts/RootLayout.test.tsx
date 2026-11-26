@@ -20,12 +20,15 @@ describe("ログインの確認", () => {
   });
 
   it("ログイン済み（200）なら、利用者名と画面を出す", async () => {
-    server.use(http.get("/api/me/", () => HttpResponse.json({ id: 1, username: "alice" })));
+    server.use(
+      http.get("/api/me/", () => HttpResponse.json({ id: 1, username: "alice" })),
+      http.get("/api/rooms/", () => HttpResponse.json([])),
+    );
 
     renderRoute("/rooms/new");
 
     expect(await screen.findByText("alice でログイン中")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent("ルームの作成");
+    expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent("ルームを作る");
   });
 
   it("403 以外の失敗なら、エラーの Alert を出す", async () => {

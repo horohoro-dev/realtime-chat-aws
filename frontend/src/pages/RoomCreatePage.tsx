@@ -4,6 +4,7 @@ import { useCreateRoom } from "../api/queries/rooms.ts";
 import { Alert } from "../components/ui/Alert.tsx";
 import { Button } from "../components/ui/Button.tsx";
 import { Form } from "../components/ui/Form.tsx";
+import { Link } from "../components/ui/Link.tsx";
 import { TextField } from "../components/ui/TextField.tsx";
 import { useSubmitLock } from "../hooks/useSubmitLock.ts";
 
@@ -39,20 +40,40 @@ export function RoomCreatePage() {
   }
 
   return (
-    <div className="space-y-4">
-      <h2 className="text-xl font-semibold">ルームの作成</h2>
-      {createRoom.isError ? (
-        <Alert tone="error">
-          ルームを作成できませんでした。時間をおいて、もう一度お試しください。
-        </Alert>
-      ) : null}
-      <Form onSubmit={handleSubmit} validationErrors={validationErrors}>
-        {/* 名前の文字数の上限はバックエンドだけが検査し、超えたら 400 の name の誤りで返る */}
-        <TextField name="name" label="ルームの名前" value={name} onChange={setName} isRequired />
-        <Button type="submit" isPending={createRoom.isPending}>
-          作成する
-        </Button>
-      </Form>
+    <div className="h-full overflow-y-auto">
+      <div className="mx-auto max-w-lg space-y-6 px-4 py-6 sm:py-10">
+        <div className="space-y-2">
+          <h2 className="text-ink text-xl font-bold">ルームを作る</h2>
+          <p className="text-muted text-sm leading-relaxed">
+            作ったルームには、あなただけが入っています。作ったあとで、ルームの画面からメンバーを招待できます。
+          </p>
+        </div>
+        {createRoom.isError ? (
+          <Alert tone="error">
+            ルームを作成できませんでした。接続を確かめて、もう一度「ルームを作る」を押してください。
+          </Alert>
+        ) : null}
+        <Form onSubmit={handleSubmit} validationErrors={validationErrors}>
+          {/* 名前の文字数の上限はバックエンドだけが検査し、超えたら 400 の name の誤りで返る */}
+          <TextField
+            name="name"
+            label="ルームの名前"
+            description="メンバー全員に表示されます。50文字まで。"
+            placeholder="例: 週次の定例"
+            value={name}
+            onChange={setName}
+            isRequired
+          />
+          <div className="flex flex-wrap items-center justify-end gap-3">
+            <Link variant="quiet" href="/">
+              やめる
+            </Link>
+            <Button type="submit" isPending={createRoom.isPending}>
+              ルームを作る
+            </Button>
+          </div>
+        </Form>
+      </div>
     </div>
   );
 }

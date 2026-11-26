@@ -1,4 +1,5 @@
 import type { RouteObject } from "react-router";
+import { RoomsLayout } from "./layouts/RoomsLayout.tsx";
 import { RootLayout } from "./layouts/RootLayout.tsx";
 import { ChatPage } from "./pages/ChatPage.tsx";
 import { RoomCreatePage } from "./pages/RoomCreatePage.tsx";
@@ -10,8 +11,13 @@ export const routes: RouteObject[] = [
     Component: RootLayout,
     children: [
       { index: true, Component: RoomListPage },
-      { path: "rooms/new", Component: RoomCreatePage },
-      { path: "rooms/:roomId", Component: ChatPage },
+      {
+        Component: RoomsLayout,
+        children: [
+          { path: "rooms/new", Component: RoomCreatePage },
+          { path: "rooms/:roomId", Component: ChatPage },
+        ],
+      },
     ],
   },
 ];
