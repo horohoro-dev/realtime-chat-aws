@@ -1,5 +1,6 @@
 import { Outlet, useLocation } from "react-router";
 import { useMe } from "../api/queries/me.ts";
+import { LinkRouterProvider } from "../components/LinkRouterProvider.tsx";
 import { Alert } from "../components/ui/Alert.tsx";
 import { Link } from "../components/ui/Link.tsx";
 
@@ -47,9 +48,11 @@ function MeStatus() {
 
 export function RootLayout() {
   return (
-    <div className="mx-auto max-w-3xl space-y-4 p-6">
-      <h1 className="text-2xl font-bold">チャット</h1>
-      <MeStatus />
-    </div>
+    <LinkRouterProvider>
+      <div className="mx-auto max-w-3xl space-y-4 p-6">
+        <h1 className="text-2xl font-bold">チャット</h1>
+        <MeStatus />
+      </div>
+    </LinkRouterProvider>
   );
 }
