@@ -114,6 +114,18 @@ def test_create_rejects_invalid_body(client, alice, body):
 
 
 @pytest.mark.django_db
+def test_create_over_2000_characters_reports_max_length_error_only(client, alice):
+    room = make_room("general", alice)
+    client.force_login(alice)
+
+    response = post_message(client, room, "a" * 2001)
+
+    assert response.json() == {
+        "body": ["この項目が2000文字より長くならないようにしてください。"],
+    }
+
+
+@pytest.mark.django_db
 def test_list_and_create_return_404_for_non_member(client, alice, bob):
     room = make_room("secret", bob)
     Message.objects.create(room=room, sender=bob, body="hidden")

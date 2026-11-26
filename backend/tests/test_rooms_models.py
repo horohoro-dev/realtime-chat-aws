@@ -50,6 +50,21 @@ def test_deleting_room_cascades_to_memberships_and_messages(room, alice):
 
 
 @pytest.mark.django_db
+def test_message_body_of_2000_characters_is_saved(room, alice):
+    Message.objects.create(room=room, sender=alice, body="a" * 2000)
+
+    assert Message.objects.get().body == "a" * 2000
+
+
+@pytest.mark.django_db
+def test_message_body_over_2000_characters_raises_integrity_error(room, alice):
+    with pytest.raises(IntegrityError), transaction.atomic():
+        Message.objects.create(room=room, sender=alice, body="a" * 2001)
+
+    assert not Message.objects.exists()
+
+
+@pytest.mark.django_db
 def test_deleting_sender_is_protected(room, alice, bob):
     Message.objects.create(room=room, sender=bob, body="hello")
 

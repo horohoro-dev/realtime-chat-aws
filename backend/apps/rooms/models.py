@@ -1,5 +1,9 @@
 from django.conf import settings
 from django.db import models
+from django.db.models.functions import Length
+from django.db.models.lookups import LessThanOrEqual
+
+MESSAGE_BODY_MAX_LENGTH = 2000
 
 
 class Room(models.Model):
@@ -40,11 +44,17 @@ class Message(models.Model):
         on_delete=models.PROTECT,
         related_name="sent_messages",
     )
-    body = models.TextField(max_length=2000)
+    body = models.TextField(max_length=MESSAGE_BODY_MAX_LENGTH)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         indexes = (models.Index(fields=["room", "id"], name="message_room_id_idx"),)
+        constraints = (
+            models.CheckConstraint(
+                condition=LessThanOrEqual(Length("body"), MESSAGE_BODY_MAX_LENGTH),
+                name="message_body_max_length",
+            ),
+        )
 
     def __str__(self):
         return f"{self.room_id}:{self.id}"
