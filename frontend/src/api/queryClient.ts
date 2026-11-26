@@ -66,14 +66,13 @@ export function createQueryClient(queryDefaults: DefaultOptions["queries"] = {})
       },
     }),
     mutationCache: new MutationCache({
-      // ミューテーションの失敗の表示を、/api/me/ の取り直しの完了まで待たせない。
-      // 404 のときは、ルームの詳細の取り直しの完了まで失敗の表示を待たせる
-      onError: async (error, _variables, _onMutateResult, mutation) => {
+      // ミューテーションの失敗の表示を、/api/me/ やルームの詳細の取り直しの完了まで待たせない
+      onError: (error, _variables, _onMutateResult, mutation) => {
         if (isForbidden(error)) {
           void recheckLogin();
         }
         if (isNotFound(error)) {
-          await recheckRoom(mutation.options.mutationKey);
+          void recheckRoom(mutation.options.mutationKey);
         }
       },
     }),
