@@ -84,7 +84,8 @@ function MessageList({ roomId }: { roomId: number }) {
 }
 
 function MessageForm({ roomId }: { roomId: number }) {
-  const [body, setBody] = useState("");
+  // edits は入力が変わるたびに増える。同じ本文を打ち直した場合も含めて、送信の途中に入力が変わったかをこの回数で見分ける
+  const [draft, setDraft] = useState({ body: "", edits: 0 });
   const sendMessage = useSendMessage(roomId);
   const validationErrors = sendMessage.data?.status === "invalid" ? sendMessage.data.errors : {};
 
@@ -94,18 +95,24 @@ function MessageForm({ roomId }: { roomId: number }) {
     if (sendMessage.isPending) {
       return;
     }
-    const sent = body;
+    const editsAtSend = draft.edits;
     sendMessage.mutate(
-      { body: sent },
+      { body: draft.body },
       {
         onSuccess: (result) => {
           if (result.status === "sent") {
             // 送信の途中に打ち始めた次の本文は残す
-            setBody((current) => (current === sent ? "" : current));
+            setDraft((current) =>
+              current.edits === editsAtSend ? { body: "", edits: current.edits + 1 } : current,
+            );
           }
         },
       },
     );
+  }
+
+  function handleChange(value: string) {
+    setDraft((current) => ({ body: value, edits: current.edits + 1 }));
   }
 
   return (
@@ -117,7 +124,13 @@ function MessageForm({ roomId }: { roomId: number }) {
       ) : null}
       <Form onSubmit={handleSubmit} validationErrors={validationErrors}>
         {/* 本文の文字数の上限はバックエンドだけが検査し、超えたら 400 の body の誤りで返る */}
-        <TextField name="body" label="メッセージ" value={body} onChange={setBody} isRequired />
+        <TextField
+          name="body"
+          label="メッセージ"
+          value={draft.body}
+          onChange={handleChange}
+          isRequired
+        />
         <Button type="submit" isPending={sendMessage.isPending}>
           送信する
         </Button>

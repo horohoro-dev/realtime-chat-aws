@@ -148,6 +148,40 @@ describe("チャット", () => {
     expect(input).toHaveValue("次の本文");
   });
 
+  it("送信の途中に打ち直した本文は、送った本文と同じでも残す", async () => {
+    const postResponse: { resolve: () => void } = { resolve: () => undefined };
+    const postResponded = new Promise<void>((resolve) => {
+      postResponse.resolve = resolve;
+    });
+    const receivePost = vi.fn();
+    server.use(
+      http.get("/api/rooms/3/messages/", () => HttpResponse.json([firstMessage])),
+      http.post("/api/rooms/3/messages/", async () => {
+        receivePost();
+        await postResponded;
+        return HttpResponse.json(
+          { ...secondMessage, body: "了解", sender: alice },
+          { status: 201 },
+        );
+      }),
+    );
+
+    renderRoute("/rooms/3");
+    await screen.findByText("おはようございます");
+    const input = await submitBody("了解");
+    await vi.waitFor(() => {
+      expect(receivePost).toHaveBeenCalledOnce();
+    });
+    fireEvent.change(input, { target: { value: "" } });
+    fireEvent.change(input, { target: { value: "了解" } });
+    postResponse.resolve();
+
+    await vi.waitFor(() => {
+      expect(screen.getByRole("button", { name: "送信する" })).not.toHaveAttribute("aria-disabled");
+    });
+    expect(input).toHaveValue("了解");
+  });
+
   it("400 のときは、入力欄の下に body の項目の誤りを出し、入力を残す", async () => {
     server.use(
       http.get("/api/rooms/3/messages/", () => HttpResponse.json([])),
