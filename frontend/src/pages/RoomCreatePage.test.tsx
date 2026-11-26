@@ -81,6 +81,63 @@ describe("ルームの作成", () => {
     expect(receive).toHaveBeenCalledExactlyOnceWith({ name: longName });
   });
 
+  it("作成の途中にもう一度送っても POST は1回", async () => {
+    const receive = vi.fn();
+    const postResponse: { resolve: () => void } = { resolve: () => undefined };
+    const postResponded = new Promise<void>((resolve) => {
+      postResponse.resolve = resolve;
+    });
+    server.use(
+      http.post("/api/rooms/", async ({ request }) => {
+        receive(await request.json());
+        await postResponded;
+        return new HttpResponse(null, { status: 500 });
+      }),
+    );
+
+    renderRoute("/rooms/new");
+    const input = await submitName("読書会");
+    await vi.waitFor(() => {
+      expect(receive).toHaveBeenCalledOnce();
+    });
+    fireEvent.submit(input.closest("form") as HTMLFormElement);
+    postResponse.resolve();
+
+    await vi.waitFor(() => {
+      expect(screen.getByRole("button", { name: "作成する" })).not.toHaveAttribute("aria-disabled");
+    });
+    expect(receive).toHaveBeenCalledExactlyOnceWith({ name: "読書会" });
+  });
+
+  it("作成の途中に名前を変えたら、送った名前への誤りは出さない", async () => {
+    const receive = vi.fn();
+    const postResponse: { resolve: () => void } = { resolve: () => undefined };
+    const postResponded = new Promise<void>((resolve) => {
+      postResponse.resolve = resolve;
+    });
+    server.use(
+      http.post("/api/rooms/", async () => {
+        receive();
+        await postResponded;
+        return HttpResponse.json({ name: ["この名前は使えません。"] }, { status: 400 });
+      }),
+    );
+
+    renderRoute("/rooms/new");
+    const input = await submitName("読書会");
+    await vi.waitFor(() => {
+      expect(receive).toHaveBeenCalledOnce();
+    });
+    fireEvent.change(input, { target: { value: "勉強会" } });
+    postResponse.resolve();
+
+    await vi.waitFor(() => {
+      expect(screen.getByRole("button", { name: "作成する" })).not.toHaveAttribute("aria-disabled");
+    });
+    expect(screen.queryByText("この名前は使えません。")).not.toBeInTheDocument();
+    expect(input).not.toHaveAttribute("aria-invalid");
+  });
+
   it("400 以外の失敗なら、エラーの Alert を出す", async () => {
     server.use(http.post("/api/rooms/", () => new HttpResponse(null, { status: 500 })));
 
