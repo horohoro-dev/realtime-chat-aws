@@ -8,6 +8,7 @@ import { Button } from "../components/ui/Button.tsx";
 import { Form } from "../components/ui/Form.tsx";
 import { Link } from "../components/ui/Link.tsx";
 import { TextField } from "../components/ui/TextField.tsx";
+import { RoomMembers } from "./RoomMembers.tsx";
 
 type Message = components["schemas"]["Message"];
 
@@ -164,6 +165,7 @@ function ChatRoom({ roomId }: { roomId: number }) {
       <h2 className="text-xl font-semibold">{room.data.name}</h2>
       <MessageList roomId={roomId} />
       <MessageForm roomId={roomId} />
+      <RoomMembers roomId={roomId} />
     </div>
   );
 }
