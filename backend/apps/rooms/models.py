@@ -40,7 +40,7 @@ class Message(models.Model):
         on_delete=models.PROTECT,
         related_name="sent_messages",
     )
-    body = models.TextField()
+    body = models.TextField(max_length=2000)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

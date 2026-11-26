@@ -3,7 +3,7 @@ from rest_framework import serializers
 
 from apps.accounts.models import User
 from apps.accounts.serializers import UserSerializer
-from apps.rooms.models import Membership, Room
+from apps.rooms.models import Membership, Message, Room
 
 
 class RoomSerializer(serializers.ModelSerializer):
@@ -45,3 +45,12 @@ class MemberSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(
                 {"username": ["すでにこのルームのメンバーです。"]}
             ) from error
+
+
+class MessageSerializer(serializers.ModelSerializer):
+    sender = UserSerializer(read_only=True)
+
+    class Meta:
+        model = Message
+        fields = ("id", "sender", "body", "created_at")
+        read_only_fields = ("id", "sender", "created_at")

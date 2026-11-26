@@ -10,4 +10,9 @@ urlpatterns = [
         views.MemberListCreateView.as_view(),
         name="member-list",
     ),
+    path(
+        "rooms/<int:room_id>/messages/",
+        views.MessageListCreateView.as_view(),
+        name="message-list",
+    ),
 ]
