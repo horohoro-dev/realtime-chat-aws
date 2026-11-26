@@ -7,7 +7,11 @@ import { routes } from "../routes.ts";
 // テストごとにキャッシュを分ける。やり直しの判定は本番と同じで、待ち時間だけ 0 にする
 export function renderRoute(path: string) {
   const testQueryClient = new QueryClient({
-    defaultOptions: { queries: { ...queryClientConfig.defaultOptions?.queries, retryDelay: 0 } },
+    ...queryClientConfig,
+    defaultOptions: {
+      ...queryClientConfig.defaultOptions,
+      queries: { ...queryClientConfig.defaultOptions?.queries, retryDelay: 0 },
+    },
   });
   const router = createMemoryRouter(routes, { initialEntries: [path] });
   return render(
