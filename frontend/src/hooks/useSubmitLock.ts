@@ -2,9 +2,9 @@ import { useRef } from "react";
 
 // ミューテーションの isPending は、TanStack Query の notifyManager が setTimeout で遅らせて React に届ける。
 // 届く前に続けて来た送信も止められるように、送信の途中かを ref に同期的に記録する。
-// acquire と release はイベントハンドラーとミューテーションのコールバックの中でだけ呼ぶ（描画中に ref を触らない）。
-// release は mutate の onSettled で呼ぶ。TanStack Query v5 はアンマウントしたあとの mutate のコールバックを呼ばないが、
-// そのときは ref もコンポーネントといっしょに捨てられるので、記録は残らない
+// ref は描画の中で読み書きできないので、acquire と release は描画の外でしか使えない。
+// TanStack Query v5 はアンマウントしたあとの mutate のコールバックを呼ばないが、
+// ref もコンポーネントといっしょに捨てられるので、記録は残らない
 export function useSubmitLock() {
   const lockedRef = useRef<boolean>(false);
 
