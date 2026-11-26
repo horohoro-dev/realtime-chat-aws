@@ -60,7 +60,10 @@ git diff --name-only --diff-filter=U
 - `MERGE_HEAD` があれば、衝突を解く途中（下の「マージ待ちの PR が `CONFLICTING` なら」の2）で止まったもの。変更を消さず（`git merge --abort` もしない）、残っている衝突のファイル（`--diff-filter=U` の結果）を解き、テストを通し、マージをコミットして push する。そのあとは下の手順の3から続ける。
 - 変更がなければ、次に進む。
 - `MERGE_HEAD` がなく、`loop/issue-<番号>-*` のブランチに変更があれば、前回の作業が途中で止まったもの。ブランチを切り替えず、変更も消さずに、その issue の作業を手順5から続ける（手順1の残りと手順2は飛ばす）。
-- `git worktree list` にある `wt-issue-<番号>` の作業ツリーも、同じように `git -C <作業ツリー> status --short` で確かめる。変更があれば、前回の作業が途中で止まったもの。その issue の作業を、その作業ツリーで手順5から続ける。
+- `git worktree list` にある `wt-issue-<番号>` の作業ツリーも、1つずつ次の順に確かめる。
+  1. `gh issue view <番号> --json labels` で、その issue に `loop:needs-human` が付いているかを見る。付いていれば人の判断待ちなので、その作業ツリーには触れず（変更を消さず、マージも続けない）、次の作業ツリーを見る。
+  2. `git -C <作業ツリー> rev-parse -q --verify MERGE_HEAD` があれば、その作業ツリーで衝突を解く途中（下の「マージ待ちの PR が `CONFLICTING` なら」の2）で止まったもの。メインの作業ツリーの `MERGE_HEAD` と同じように、`git -C <作業ツリー> diff --name-only --diff-filter=U` の衝突のファイルを解き、テストを通し、マージをコミットして push する。そのあとは「マージ待ちの PR が `CONFLICTING` なら」の3から続ける。
+  3. `git -C <作業ツリー> status --short` に変更があれば、前回の作業が途中で止まったもの。その issue の作業を、その作業ツリーで手順5から続ける。
 - それ以外のブランチに変更があれば、人の作業の途中かもしれない。変更に触れず（stash、restore、checkout をしない）、ループを始めずに、ブランチ名と変更のあるファイルを報告して止める。
 
 ```bash
