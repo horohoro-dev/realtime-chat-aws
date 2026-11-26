@@ -133,8 +133,6 @@ jobs:
           - { task: typecheck, timeout: 10, run: "pnpm run check:api && pnpm exec tsc --noEmit" }
           - { task: test,      timeout: 15, run: "pnpm exec vitest run --reporter=default --reporter=junit --outputFile.junit=test-results/vitest-junit.xml" }
           - { task: build,     timeout: 10, run: "pnpm exec vite build" }
-          # ビルドした画面を vite preview で配信し、Chromium で動かす（frontend/playwright.config.ts）
-          - { task: e2e,       timeout: 20, run: "pnpm exec playwright install --with-deps chromium && pnpm run e2e" }
     defaults:
       run:
         working-directory: frontend
@@ -153,9 +151,58 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: ${{ matrix.run }}
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        if: always() && (matrix.task == 'test' || matrix.task == 'e2e')
+        if: always() && matrix.task == 'test'
         with:
           name: frontend-${{ matrix.task }}-results
+          path: frontend/test-results/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  # Playwright の webServer（frontend/playwright.config.ts）が、Django の開発サーバーと vite preview を起動する。
+  # Django は起動の前に prepare_e2e で、DB の作成、マイグレーション、テストの利用者の作成をする
+  e2e:
+    needs: changes
+    if: needs.changes.outputs.backend == 'true' || needs.changes.outputs.frontend == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          # テスト専用の固定値。公開されても困らないので Secrets に置かない
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready --health-interval 5s --health-retries 10
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          working-directory: backend
+          enable-cache: true
+      - run: uv sync --frozen
+        working-directory: backend
+      - uses: pnpm/action-setup@73e46992e05b19abd31f2f3c20e0e7370d762115 # v6.1.1
+        with:
+          package_json_file: frontend/package.json
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: frontend/.nvmrc
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      # E2E の DB は config.settings.e2e の既定の接続先（サービスコンテナの e2e）
+      - run: pnpm run e2e
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: e2e-results
           path: |
             frontend/test-results/
             frontend/playwright-report/
@@ -233,6 +280,7 @@ jobs:
       - backend-test
       - backend-schema
       - frontend
+      - e2e
       - security-scan
     if: always()
     runs-on: ubuntu-24.04

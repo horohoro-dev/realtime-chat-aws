@@ -1,7 +1,12 @@
 import { defineConfig, devices } from "@playwright/test";
+import { E2E_PUBLIC_TEST_PASSWORD, e2eUsers } from "./e2e/users.ts";
 
 const isCi = Boolean(process.env.CI);
 const port = 4173;
+// make run の Django（8000番）と同時に動かせるように、別のポートにする
+const apiPort = 8001;
+const apiOrigin = `http://127.0.0.1:${apiPort}`;
+const manage = "uv run python manage.py";
 
 // biome-ignore lint/style/noDefaultExport: Playwright は設定ファイルの default export を読む
 export default defineConfig({
@@ -22,10 +27,29 @@ export default defineConfig({
     screenshot: "only-on-failure",
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
-  webServer: {
-    command: `pnpm exec vite build && pnpm exec vite preview --port ${port} --strictPort`,
-    url: `http://localhost:${port}`,
-    reuseExistingServer: !isCi,
-    timeout: 120_000,
-  },
+  webServer: [
+    {
+      name: "Django",
+      // prepare_e2e は E2E の DB がなければ作り、マイグレーションとテストの利用者の作成をする
+      command: [
+        `${manage} prepare_e2e --password ${E2E_PUBLIC_TEST_PASSWORD} ${Object.values(e2eUsers).join(" ")}`,
+        `${manage} runserver ${apiPort} --noreload`,
+      ].join(" && "),
+      cwd: "../backend",
+      env: { DJANGO_SETTINGS_MODULE: "config.settings.e2e" },
+      url: `${apiOrigin}/api/auth/login/`,
+      reuseExistingServer: !isCi,
+      stdout: "pipe",
+      timeout: 120_000,
+    },
+    {
+      name: "Vite",
+      // 画面と /api を同じオリジン（localhost:4173）から配信する。/api は vite.config.ts の proxy で Django に転送する
+      command: `pnpm exec vite build && pnpm exec vite preview --port ${port} --strictPort`,
+      env: { API_PROXY_TARGET: apiOrigin },
+      url: `http://localhost:${port}`,
+      reuseExistingServer: !isCi,
+      timeout: 120_000,
+    },
+  ],
 });
