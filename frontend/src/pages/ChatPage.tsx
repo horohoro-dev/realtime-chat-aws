@@ -8,6 +8,7 @@ import { Button } from "../components/ui/Button.tsx";
 import { Form } from "../components/ui/Form.tsx";
 import { Link } from "../components/ui/Link.tsx";
 import { TextField } from "../components/ui/TextField.tsx";
+import { RoomMembers } from "./RoomMembers.tsx";
 
 type Message = components["schemas"]["Message"];
 
@@ -87,7 +88,11 @@ function MessageForm({ roomId }: { roomId: number }) {
   // edits は入力が変わるたびに増える。同じ本文を打ち直した場合も含めて、送信の途中に入力が変わったかをこの回数で見分ける
   const [draft, setDraft] = useState({ body: "", edits: 0 });
   const sendMessage = useSendMessage(roomId);
-  const validationErrors = sendMessage.data?.status === "invalid" ? sendMessage.data.errors : {};
+  // 送った値から入力が変わったら、その値への誤りは出さない
+  const validationErrors =
+    sendMessage.data?.status === "invalid" && sendMessage.variables?.body === draft.body
+      ? sendMessage.data.errors
+      : {};
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -164,6 +169,7 @@ function ChatRoom({ roomId }: { roomId: number }) {
       <h2 className="text-xl font-semibold">{room.data.name}</h2>
       <MessageList roomId={roomId} />
       <MessageForm roomId={roomId} />
+      <RoomMembers roomId={roomId} />
     </div>
   );
 }

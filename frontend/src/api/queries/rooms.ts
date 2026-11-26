@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { client } from "../client.ts";
 import { createApiError } from "../errors.ts";
+import { fieldErrorMessages } from "../fieldErrors.ts";
 import type { components } from "../schema.d.ts";
 
 type Room = components["schemas"]["Room"];
@@ -17,18 +18,6 @@ export const roomKeys = {
   list: () => [...roomKeys.all, "list"] as const,
   detail: (roomId: number) => [...roomKeys.all, "detail", roomId] as const,
 };
-
-function isStringArray(value: unknown): value is string[] {
-  return Array.isArray(value) && value.every((item) => typeof item === "string");
-}
-
-// DRF は入力の誤りを {"項目名": ["メッセージ", ...]} の形で返す
-function toFieldErrors(body: unknown): RoomFieldErrors {
-  if (typeof body !== "object" || body === null || !("name" in body)) {
-    return {};
-  }
-  return isStringArray(body.name) && body.name.length > 0 ? { name: body.name } : {};
-}
 
 export function useRooms() {
   return useQuery({
@@ -74,9 +63,9 @@ export function useCreateRoom() {
   return useMutation({
     mutationFn: async (body: RoomRequest): Promise<CreateRoomResult> => {
       const { data, error, response } = await client.POST("/api/rooms/", { body });
-      const errors = response.status === 400 ? toFieldErrors(error) : {};
-      if (errors.name !== undefined) {
-        return { status: "invalid", errors };
+      const messages = response.status === 400 ? fieldErrorMessages(error, "name") : undefined;
+      if (messages !== undefined) {
+        return { status: "invalid", errors: { name: messages } };
       }
       if (data === undefined) {
         throw createApiError(
