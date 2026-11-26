@@ -30,9 +30,12 @@ PR は develop に向けます。ループの作業は、PR が develop にマ�
 
 ## 並列で進める
 
-依存が済んでいる issue は、同時に **4つ** まで進める。数えるのは、`loop:in-progress` が付き、PR に `loop:awaiting-merge` がまだ付いていない issue。マージ待ちの PR と、CodeRabbit の回数の上限でレビューを待っている PR（手順8）は数えない。4つは、CodeRabbit の PR のレビューの回数の上限（1時間に10回）から決めた数。
+依存が済んでいる issue は、同時に **4つ** まで進める。数えるのは、`loop:in-progress` が付き、`loop:needs-human` が付いておらず、PR に `loop:awaiting-merge` がまだ付いていない issue。マージ待ちの PR、人の判断を待つ issue（`loop:needs-human`。手順10の「止める」で付け、`loop:in-progress` は残る）、CodeRabbit の回数の上限でレビューを待っている PR（手順8）は数えない。4つは、CodeRabbit の PR のレビューの回数の上限（1時間に10回）から決めた数。
 
 - 作業ツリーは issue ごとに分ける。リポジトリの隣に `git worktree add ../wt-issue-<番号> -b loop/issue-<番号>-<英小文字とハイフンの短い名前> origin/develop` で作り、その中の `frontend/` で `pnpm install --frozen-lockfile`、`backend/` で `uv sync --frozen` を行う。メインの作業ツリーのブランチは切り替えない。
+- 既存のブランチで作業を続けるとき（衝突を解く、PR を再開する）は、そのブランチの作業ツリーで行う。Git は、別の作業ツリーで使っているブランチへの `git switch` を拒むため。
+  - `git worktree list` にそのブランチの作業ツリーがあれば、そこで操作する（`git -C <作業ツリー> ...`）。
+  - なければ、ローカルにブランチがあるときは `git worktree add ../wt-issue-<番号> <ブランチ>`、リモートにしかないときは `git worktree add ../wt-issue-<番号> -b <ブランチ> origin/<ブランチ>` で作り、依存を入れてから操作する。
 - 実装のサブエージェント（手順5）は issue ごとに1つ、`run_in_background` で動かす。プロンプトには、作業ツリーのパス、ほかの作業ツリーのファイルを変えないこと、push と PR の作成をしないことを書く。
 - バックエンドのテストのデータベースが、作業ツリーどうしでぶつからないようにする。作業ツリーの中でテストを動かすときは、`DATABASE_URL=postgres://postgres:postgres@localhost:5432/issue<番号>` を付ける。pytest-django が、この名前から issue ごとのテスト用のデータベースを作る。
 - `code-review` でのレビュー（手順6）、push と PR の作成（手順7）、レビューの対応（手順8〜10）は、メインのセッションが issue ごとに行う。
@@ -76,7 +79,7 @@ gh issue edit <番号> --remove-label loop:in-progress --remove-label loop:ready
 マージ待ちの PR が `CONFLICTING` なら、次のように直す。
 
 1. `gh pr edit <PR番号> --remove-label loop:awaiting-merge` で、push の前にマージ待ちのラベルを外す。新しいコミットの CI が終わるまで、人がマージしないようにするため。
-2. そのブランチに切り替え、`git merge origin/develop` で衝突を解き、テストを通してから push する（強制 push はしない。ブランチに `origin/develop` を取り込んだマージのコミットが残ってもよい）。
+2. そのブランチの作業ツリー（「並列で進める」）で、`git merge origin/develop` で衝突を解き、テストを通してから push する（強制 push はしない。ブランチに `origin/develop` を取り込んだマージのコミットが残ってもよい）。
 3. push のあとは、手順9の「CI を待つ」から進め、手順10の「終える」の条件をもう一度満たしたら `loop:awaiting-merge` を付け直す。CodeRabbit のレビューはもう一度は頼まない。
 
 マージ待ちの PR に人のコメントが付いていれば、同じようにラベルを外してから、手順9と同じように対応する。
@@ -96,11 +99,11 @@ gh issue list --state open --label loop:ready --json number,title,labels,body --
   gh pr list --state open --search "Fixes #<番号> in:body" --json number,headRefName,labels,url
   ```
 
-  - レビュー済みなら、そのブランチに切り替えて手順9から再開する。
+  - レビュー済みなら、そのブランチの作業ツリー（「並列で進める」）で手順9から再開する。
   - 回数の上限でレビューされず、上限が戻る時刻がまだ来ていなければ、この issue は飛ばして、ほかの issue を見る。
-  - それ以外なら、そのブランチに切り替えて手順8から再開する。
+  - それ以外なら、そのブランチの作業ツリーで手順8から再開する。
 
-- PR がなく、ブランチ `loop/issue-<番号>-*` が残っていれば（`git branch --list 'loop/issue-<番号>-*'` と `git ls-remote --heads origin 'loop/issue-<番号>-*'`）、そのブランチに切り替えて手順4以降を続ける。
+- PR がなく、ブランチ `loop/issue-<番号>-*` が残っていれば（`git branch --list 'loop/issue-<番号>-*'` と `git ls-remote --heads origin 'loop/issue-<番号>-*'`）、そのブランチの作業ツリーで手順4以降を続ける。
 - PR もブランチもなければ、ラベルを付けたところで止まったもの。手順3から始める。
 
 再開する issue がなければ、新しく着手する issue を選ぶ。
