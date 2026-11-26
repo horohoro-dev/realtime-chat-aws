@@ -10,5 +10,5 @@ it("見出しとルームの一覧の画面を表示する", async () => {
   render(<App />);
 
   expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("チャット");
-  expect(await screen.findByRole("heading", { level: 2 })).toHaveTextContent("ルームの一覧");
+  expect(await screen.findByRole("heading", { level: 2 })).toHaveTextContent("参加しているルーム");
 });

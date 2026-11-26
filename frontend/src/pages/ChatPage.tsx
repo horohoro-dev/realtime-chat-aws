@@ -1,22 +1,25 @@
+import { ArrowLeft, SendHorizontal } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { useParams } from "react-router";
-import { useMessages, useSendMessage } from "../api/queries/messages.ts";
+import { useMembers } from "../api/queries/members.ts";
+import { useSendMessage } from "../api/queries/messages.ts";
 import { useRoom } from "../api/queries/rooms.ts";
 import type { components } from "../api/schema.d.ts";
 import { Alert } from "../components/ui/Alert.tsx";
+import { Avatar } from "../components/ui/Avatar.tsx";
 import { Button } from "../components/ui/Button.tsx";
 import { Form } from "../components/ui/Form.tsx";
-import { Link } from "../components/ui/Link.tsx";
-import { TextField } from "../components/ui/TextField.tsx";
+import { Link, LinkButton } from "../components/ui/Link.tsx";
+import { Loading } from "../components/ui/Loading.tsx";
+import { MessageField } from "../components/ui/TextField.tsx";
 import { useSubmitLock } from "../hooks/useSubmitLock.ts";
-import { RoomMembers } from "./RoomMembers.tsx";
+import { useCurrentUser } from "../layouts/currentUser.ts";
+import { MessageList } from "./ChatMessages.tsx";
+import { dateFormat } from "./format.ts";
+import { InviteDialog, MembersDialog, MembersPanel } from "./RoomMembers.tsx";
+import { RoomsNav } from "./RoomsNav.tsx";
 
-type Message = components["schemas"]["Message"];
-
-const dateTimeFormat = new Intl.DateTimeFormat("ja-JP", {
-  dateStyle: "medium",
-  timeStyle: "short",
-});
+type Room = components["schemas"]["Room"];
 
 // バックエンドの URL は room_id を正の整数としてだけ受け付ける
 function parseRoomId(value: string | undefined): number | null {
@@ -29,63 +32,51 @@ function parseRoomId(value: string | undefined): number | null {
 
 function RoomNotFound() {
   return (
-    <div className="space-y-4">
-      <h2 className="text-xl font-semibold">ルームが見つかりません</h2>
-      <Link href="/">ルームの一覧へ戻る</Link>
-    </div>
-  );
-}
-
-function MessageItem({ message }: { message: Message }) {
-  return (
-    <li className="space-y-1 rounded-md border border-gray-200 px-4 py-3">
-      <div className="flex items-baseline gap-2 text-sm">
-        <span className="font-medium">{message.sender.username}</span>
-        <time dateTime={message.created_at} className="text-gray-600">
-          {dateTimeFormat.format(new Date(message.created_at))}
-        </time>
-      </div>
-      <p className="break-words whitespace-pre-wrap">{message.body}</p>
-    </li>
-  );
-}
-
-function MessageItems({ messages }: { messages: Message[] }) {
-  if (messages.length === 0) {
-    return <p className="text-sm text-gray-600">メッセージはまだありません。</p>;
-  }
-  return (
-    <ol aria-label="メッセージ" className="space-y-2">
-      {messages.map((message) => (
-        <MessageItem key={message.id} message={message} />
-      ))}
-    </ol>
-  );
-}
-
-function MessageList({ roomId }: { roomId: number }) {
-  const messages = useMessages(roomId);
-
-  if (messages.isPending) {
-    return (
-      <p role="status" className="text-sm text-gray-600">
-        メッセージを読み込んでいます…
+    <div className="m-auto max-w-md px-4 py-16 text-center sm:px-6">
+      <h2 className="text-xl font-semibold tracking-tight">ルームが見つかりません</h2>
+      <p className="text-muted mt-2 text-base leading-relaxed">
+        ルームがないか、あなたがこのルームのメンバーではありません。
       </p>
-    );
-  }
-  return (
-    <div className="space-y-4">
-      {messages.isError ? (
-        <Alert tone="error">
-          メッセージを取得できませんでした。時間をおいて、ページを読み込み直してください。
-        </Alert>
-      ) : null}
-      {messages.data === undefined ? null : <MessageItems messages={messages.data} />}
+      <p className="mt-6">
+        <Link href="/">ルームの一覧へ戻る</Link>
+      </p>
     </div>
   );
 }
 
-function MessageForm({ roomId }: { roomId: number }) {
+function RoomHeader({ room }: { room: Room }) {
+  const memberCount = useMembers(room.id).data?.length;
+  return (
+    <div className="border-line bg-card flex h-18 shrink-0 items-center gap-3 border-b px-4 sm:px-6">
+      <span className="-ml-3 lg:hidden">
+        <LinkButton href="/" variant="ghost" shape="square" aria-label="ルームの一覧">
+          <ArrowLeft aria-hidden="true" className="size-5" />
+        </LinkButton>
+      </span>
+      <span className="max-sm:hidden">
+        <Avatar name={room.name} shape="room" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <h2 className="truncate text-lg font-semibold tracking-tight">{room.name}</h2>
+        <p className="text-muted truncate text-[13px]">
+          {memberCount === undefined ? null : <span>{memberCount}人</span>}
+          <span className="max-sm:hidden">
+            {memberCount === undefined ? "" : "・"}
+            {room.created_by.username} が{dateFormat.format(new Date(room.created_at))}に作成
+          </span>
+        </p>
+      </div>
+      <div className="flex shrink-0 items-center gap-2">
+        <div className="xl:hidden">
+          <MembersDialog roomId={room.id} />
+        </div>
+        <InviteDialog roomId={room.id} roomName={room.name} />
+      </div>
+    </div>
+  );
+}
+
+function MessageForm({ roomId, roomName }: { roomId: number; roomName: string }) {
   // edits は入力が変わるたびに増える。同じ本文を打ち直した場合も含めて、送信の途中に入力が変わったかをこの回数で見分ける
   const [draft, setDraft] = useState({ body: "", edits: 0 });
   const sendMessage = useSendMessage(roomId);
@@ -124,64 +115,84 @@ function MessageForm({ roomId }: { roomId: number }) {
   }
 
   return (
-    <div className="space-y-4">
-      {sendMessage.isError ? (
-        <Alert tone="error">
-          メッセージを送信できませんでした。時間をおいて、もう一度お試しください。
-        </Alert>
-      ) : null}
-      <Form onSubmit={handleSubmit} validationErrors={validationErrors}>
-        {/* 本文の文字数の上限はバックエンドだけが検査し、超えたら 400 の body の誤りで返る */}
-        <TextField
-          name="body"
-          label="メッセージ"
-          value={draft.body}
-          onChange={handleChange}
-          isRequired
-        />
-        <Button type="submit" isPending={sendMessage.isPending}>
-          送信する
-        </Button>
-      </Form>
+    <div className="border-line bg-card shrink-0 border-t px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-6">
+      <div className="mx-auto flex w-full max-w-3xl flex-col gap-3">
+        {sendMessage.isError ? (
+          <Alert tone="error">
+            メッセージを送れませんでした。本文は入力欄に残っています。少し待ってから、もう一度送ってください。
+          </Alert>
+        ) : null}
+        <Form layout="inline" onSubmit={handleSubmit} validationErrors={validationErrors}>
+          {/* 本文の文字数の上限はバックエンドだけが検査し、超えたら 400 の body の誤りで返る */}
+          <MessageField
+            name="body"
+            label="メッセージ"
+            placeholder={`${roomName} へのメッセージ`}
+            value={draft.body}
+            onChange={handleChange}
+            isRequired
+          />
+          <Button type="submit" isPending={sendMessage.isPending}>
+            <SendHorizontal aria-hidden="true" className="size-4" />
+            <span className="max-sm:sr-only">送信する</span>
+          </Button>
+        </Form>
+        <p className="text-muted text-[13px] max-sm:hidden">
+          Enter で送信、Shift + Enter で改行。2000文字まで送れます。
+        </p>
+      </div>
     </div>
   );
 }
 
 function ChatRoom({ roomId }: { roomId: number }) {
   const room = useRoom(roomId);
+  const myId = useCurrentUser().id;
 
   if (room.isPending) {
     return (
-      <p role="status" className="text-sm text-gray-600">
-        ルームを読み込んでいます…
-      </p>
+      <div className="m-auto">
+        <Loading>ルームを読み込んでいます</Loading>
+      </div>
     );
   }
   // 取り直しが失敗しても、前に取れたルームがあれば画面を出したままにする
   if (room.data === undefined) {
     return (
-      <Alert tone="error">
-        ルームを取得できませんでした。時間をおいて、ページを読み込み直してください。
-      </Alert>
+      <div className="m-auto w-full max-w-md px-4 sm:px-6">
+        <Alert tone="error">
+          ルームを取得できませんでした。少し待ってから、ページを読み込み直してください。
+        </Alert>
+      </div>
     );
   }
   if (room.data === null) {
     return <RoomNotFound />;
   }
   return (
-    <div className="space-y-6">
-      <h2 className="text-xl font-semibold">{room.data.name}</h2>
-      <MessageList roomId={roomId} />
-      <MessageForm roomId={roomId} />
-      <RoomMembers roomId={roomId} />
+    <div className="flex min-h-0 min-w-0 flex-1">
+      <div className="flex min-w-0 flex-1 flex-col">
+        <RoomHeader room={room.data} />
+        <MessageList roomId={roomId} myId={myId} />
+        <MessageForm roomId={roomId} roomName={room.data.name} />
+      </div>
+      <aside className="border-line bg-card hidden w-72 shrink-0 overflow-y-auto border-l xl:block">
+        <MembersPanel roomId={roomId} />
+      </aside>
     </div>
   );
 }
 
 export function ChatPage() {
   const roomId = parseRoomId(useParams().roomId);
-  if (roomId === null) {
-    return <RoomNotFound />;
-  }
-  return <ChatRoom key={roomId} roomId={roomId} />;
+  return (
+    <div className="flex h-full">
+      <div className="border-line bg-card hidden w-72 shrink-0 overflow-y-auto border-r lg:block">
+        <RoomsNav currentRoomId={roomId} />
+      </div>
+      <div className="flex min-w-0 flex-1 flex-col">
+        {roomId === null ? <RoomNotFound /> : <ChatRoom key={roomId} roomId={roomId} />}
+      </div>
+    </div>
+  );
 }

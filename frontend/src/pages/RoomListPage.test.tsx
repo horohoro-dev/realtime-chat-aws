@@ -1,6 +1,7 @@
-import { fireEvent, screen } from "@testing-library/react";
+import { fireEvent, screen, within } from "@testing-library/react";
 import { HttpResponse, http } from "msw";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { findLoggedInAs, queryLoggedInAs } from "../test/queries.ts";
 import { renderRoute } from "../test/renderRoute.tsx";
 import { server } from "../test/server.ts";
 
@@ -25,6 +26,11 @@ describe("ルームの一覧", () => {
 
     expect(await screen.findByRole("link", { name: "雑談" })).toHaveAttribute("href", "/rooms/3");
     expect(screen.getByRole("link", { name: "開発の相談" })).toHaveAttribute("href", "/rooms/2");
+    const items = within(screen.getByRole("list", { name: "参加しているルーム" })).getAllByRole(
+      "listitem",
+    );
+    expect(items[0]).toHaveTextContent("alice が2026年11月2日に作成");
+    expect(screen.getByText("2件")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "ルームを作る" })).toHaveAttribute(
       "href",
       "/rooms/new",
@@ -55,11 +61,11 @@ describe("ルームの一覧", () => {
     );
 
     renderRoute("/");
-    const loggedIn = await screen.findByText("alice でログイン中");
+    const loggedIn = await findLoggedInAs("alice");
     fireEvent.click(await screen.findByRole("link", { name: "雑談" }));
 
     expect(await screen.findByRole("heading", { level: 2, name: "雑談" })).toBeInTheDocument();
-    expect(screen.getByText("alice でログイン中")).toBe(loggedIn);
+    expect(queryLoggedInAs("alice")).toBe(loggedIn);
     expect(receiveMe).toHaveBeenCalledOnce();
   });
 
@@ -70,7 +76,7 @@ describe("ルームの一覧", () => {
     fireEvent.click(await screen.findByRole("link", { name: "ルームを作る" }));
 
     expect(
-      await screen.findByRole("heading", { level: 2, name: "ルームの作成" }),
+      await screen.findByRole("heading", { level: 2, name: "ルームを作る" }),
     ).toBeInTheDocument();
   });
 
@@ -79,7 +85,7 @@ describe("ルームの一覧", () => {
 
     renderRoute("/");
 
-    expect(await screen.findByText("参加しているルームはまだありません。")).toBeInTheDocument();
+    expect(await screen.findByText("参加しているルームはありません")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "ルームを作る" })).toHaveAttribute(
       "href",
       "/rooms/new",
@@ -172,7 +178,7 @@ describe("ルームの一覧", () => {
     await vi.waitFor(() => {
       expect(receiveMe).toHaveBeenCalledTimes(5);
     });
-    expect(screen.getByText("alice でログイン中")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent("ルームの一覧");
+    expect(queryLoggedInAs("alice")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent("参加しているルーム");
   });
 });

@@ -1,12 +1,12 @@
 import { Button as AriaButton, type ButtonProps as AriaButtonProps } from "react-aria-components";
+import { type ButtonShape, type ButtonVariant, buttonClassName } from "./buttonStyles.ts";
 
-type ButtonProps = Omit<AriaButtonProps, "className">;
+type ButtonProps = Omit<AriaButtonProps, "className"> & {
+  variant?: ButtonVariant;
+  // square は文字のないアイコンだけのボタン。aria-label で名前を付ける
+  shape?: ButtonShape;
+};
 
-export function Button(props: ButtonProps) {
-  return (
-    <AriaButton
-      {...props}
-      className="pressed:bg-sky-900 rounded-md bg-sky-700 px-4 py-2 font-medium text-white outline-none hover:bg-sky-800 focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2 disabled:opacity-50"
-    />
-  );
+export function Button({ variant = "primary", shape = "wide", ...props }: ButtonProps) {
+  return <AriaButton {...props} className={buttonClassName(variant, shape)} />;
 }

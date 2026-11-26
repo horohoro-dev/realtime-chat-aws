@@ -1,2 +1,57 @@
 @import "tailwindcss";
 @plugin "tailwindcss-react-aria-components";
+
+/*
+ * 画面全体で使う色、角の丸み、動きの値。部品はここの値だけを使う。
+ * 地は冷たい白、文字は濃いスレート、色を付けるのは青緑の1色だけ（主のボタン、リンク、フォーカスの輪）。
+ */
+@theme {
+  --font-sans:
+    "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic UI", Meiryo, system-ui,
+    sans-serif;
+
+  --color-ground: #f7f9fa;
+  --color-surface: #ecf0f2;
+  --color-card: #ffffff;
+  --color-ink: #1f3038;
+  --color-muted: #5d6b72;
+  --color-line: rgb(31 48 56 / 0.13);
+  --color-line-strong: rgb(31 48 56 / 0.24);
+  --color-action: #0d7480;
+  --color-action-strong: #0e6670;
+  --color-action-soft: rgb(13 116 128 / 0.1);
+  --color-danger: #a3341f;
+  --color-danger-soft: #fbefec;
+  --color-success: #1f6b4a;
+  --color-success-soft: #ecf5f0;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+
+  --ease-ui: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+html {
+  background-color: var(--color-ground);
+  color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  margin: 0;
+  background-color: var(--color-ground);
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    translate: 0 6px;
+  }
+}

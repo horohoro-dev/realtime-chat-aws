@@ -1,6 +1,7 @@
 import { screen } from "@testing-library/react";
 import { HttpResponse, http } from "msw";
 import { describe, expect, it } from "vitest";
+import { findLoggedInAs } from "../test/queries.ts";
 import { renderRoute } from "../test/renderRoute.tsx";
 import { server } from "../test/server.ts";
 
@@ -24,8 +25,8 @@ describe("ログインの確認", () => {
 
     renderRoute("/rooms/new");
 
-    expect(await screen.findByText("alice でログイン中")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent("ルームの作成");
+    expect(await findLoggedInAs("alice")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent("ルームを作る");
   });
 
   it("403 以外の失敗なら、エラーの Alert を出す", async () => {

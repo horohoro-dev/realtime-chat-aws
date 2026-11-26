@@ -7,13 +7,17 @@ import { server } from "../test/server.ts";
 const alice = { id: 1, username: "alice" };
 
 beforeEach(() => {
-  server.use(http.get("/api/me/", () => HttpResponse.json(alice)));
+  server.use(
+    http.get("/api/me/", () => HttpResponse.json(alice)),
+    http.get("/api/rooms/", () => HttpResponse.json([])),
+    http.get("/api/rooms/7/members/", () => HttpResponse.json([])),
+  );
 });
 
 async function submitName(name: string) {
   const input = await screen.findByRole("textbox", { name: "ルームの名前" });
   fireEvent.change(input, { target: { value: name } });
-  fireEvent.click(screen.getByRole("button", { name: "作成する" }));
+  fireEvent.click(screen.getByRole("button", { name: "ルームを作る" }));
   return input;
 }
 
@@ -42,6 +46,14 @@ describe("ルームの作成", () => {
     expect(receive).toHaveBeenCalledExactlyOnceWith({ name: "読書会" });
   });
 
+  it("入力欄の下に、名前の上限の文字数を出す", async () => {
+    renderRoute("/rooms/new");
+
+    expect(
+      await screen.findByRole("textbox", { name: "ルームの名前" }),
+    ).toHaveAccessibleDescription("50文字まで。あとから変えることはできません。");
+  });
+
   it("400 のときは、入力欄の下に name の項目の誤りを出す", async () => {
     server.use(
       http.post("/api/rooms/", () =>
@@ -54,8 +66,8 @@ describe("ルームの作成", () => {
 
     expect(await screen.findByText("この名前は使えません。")).toBeInTheDocument();
     expect(input).toHaveAttribute("aria-invalid", "true");
-    expect(input).toHaveAccessibleDescription("この名前は使えません。");
-    expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent("ルームの作成");
+    expect(input).toHaveAccessibleDescription(/この名前は使えません。/);
+    expect(screen.getByRole("heading", { level: 2 })).toHaveTextContent("ルームを作る");
   });
 
   it("長すぎる名前も切らずに送り、サーバーの誤りを入力欄の下に出す", async () => {
@@ -104,7 +116,9 @@ describe("ルームの作成", () => {
     postResponse.resolve();
 
     await vi.waitFor(() => {
-      expect(screen.getByRole("button", { name: "作成する" })).not.toHaveAttribute("aria-disabled");
+      expect(screen.getByRole("button", { name: "ルームを作る" })).not.toHaveAttribute(
+        "aria-disabled",
+      );
     });
     expect(receive).toHaveBeenCalledExactlyOnceWith({ name: "読書会" });
   });
@@ -124,7 +138,6 @@ describe("ルームの作成", () => {
       }),
       http.get("/api/rooms/7/", () => HttpResponse.json(created)),
       http.get("/api/rooms/7/messages/", () => HttpResponse.json([])),
-      http.get("/api/rooms/7/members/", () => HttpResponse.json([])),
     );
 
     renderRoute("/rooms/new");
@@ -156,7 +169,9 @@ describe("ルームの作成", () => {
       expect(receive).toHaveBeenCalledOnce();
     });
     await vi.waitFor(() => {
-      expect(screen.getByRole("button", { name: "作成する" })).not.toHaveAttribute("aria-disabled");
+      expect(screen.getByRole("button", { name: "ルームを作る" })).not.toHaveAttribute(
+        "aria-disabled",
+      );
     });
     await submitName("勉強会");
 
@@ -188,7 +203,9 @@ describe("ルームの作成", () => {
     postResponse.resolve();
 
     await vi.waitFor(() => {
-      expect(screen.getByRole("button", { name: "作成する" })).not.toHaveAttribute("aria-disabled");
+      expect(screen.getByRole("button", { name: "ルームを作る" })).not.toHaveAttribute(
+        "aria-disabled",
+      );
     });
     expect(screen.queryByText("この名前は使えません。")).not.toBeInTheDocument();
     expect(input).not.toHaveAttribute("aria-invalid");

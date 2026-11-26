@@ -1,9 +1,11 @@
+import { ArrowLeft } from "lucide-react";
 import { type FormEvent, useState } from "react";
 import { useNavigate } from "react-router";
 import { useCreateRoom } from "../api/queries/rooms.ts";
 import { Alert } from "../components/ui/Alert.tsx";
 import { Button } from "../components/ui/Button.tsx";
 import { Form } from "../components/ui/Form.tsx";
+import { Link } from "../components/ui/Link.tsx";
 import { TextField } from "../components/ui/TextField.tsx";
 import { useSubmitLock } from "../hooks/useSubmitLock.ts";
 
@@ -39,20 +41,40 @@ export function RoomCreatePage() {
   }
 
   return (
-    <div className="space-y-4">
-      <h2 className="text-xl font-semibold">ルームの作成</h2>
-      {createRoom.isError ? (
-        <Alert tone="error">
-          ルームを作成できませんでした。時間をおいて、もう一度お試しください。
-        </Alert>
-      ) : null}
-      <Form onSubmit={handleSubmit} validationErrors={validationErrors}>
-        {/* 名前の文字数の上限はバックエンドだけが検査し、超えたら 400 の name の誤りで返る */}
-        <TextField name="name" label="ルームの名前" value={name} onChange={setName} isRequired />
-        <Button type="submit" isPending={createRoom.isPending}>
-          作成する
-        </Button>
-      </Form>
+    <div className="mx-auto w-full max-w-2xl px-4 py-10 sm:px-6 sm:py-14">
+      <Link href="/" variant="quiet">
+        <ArrowLeft aria-hidden="true" className="size-4" />
+        ルームの一覧
+      </Link>
+      <h2 className="mt-6 text-2xl font-semibold tracking-tight">ルームを作る</h2>
+      <p className="text-muted mt-1 text-base leading-relaxed">
+        作った人が最初のメンバーになります。ほかの人は、ルームの中から招待できます。
+      </p>
+      <div className="border-line bg-card mt-8 rounded-lg border p-6 sm:p-8">
+        <div className="flex flex-col gap-6">
+          {createRoom.isError ? (
+            <Alert tone="error">
+              ルームを作成できませんでした。入力はそのままです。少し待ってから、もう一度押してください。
+            </Alert>
+          ) : null}
+          <Form onSubmit={handleSubmit} validationErrors={validationErrors}>
+            {/* 名前の文字数の上限はバックエンドだけが検査し、超えたら 400 の name の誤りで返る */}
+            <TextField
+              name="name"
+              label="ルームの名前"
+              description="50文字まで。あとから変えることはできません。"
+              value={name}
+              onChange={setName}
+              isRequired
+            />
+            <div className="flex flex-col sm:flex-row">
+              <Button type="submit" isPending={createRoom.isPending}>
+                ルームを作る
+              </Button>
+            </div>
+          </Form>
+        </div>
+      </div>
     </div>
   );
 }
