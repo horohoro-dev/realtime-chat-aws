@@ -31,7 +31,7 @@
    - E2E の DB は、開発に使う DB と分けます。既定は `postgres://postgres:postgres@localhost:5432/e2e` で、ほかの接続先は `E2E_DATABASE_URL` で渡します（例：`E2E_DATABASE_URL=postgres://postgres:postgres@localhost:5433/e2e make e2e`）。`DATABASE_URL` は E2E では使いません。
    - テストの利用者のパスワードは、公開してよいテスト用の固定の値で、`frontend/e2e/users.ts` にあります。E2E の DB のほかでは使いません。
    - `make e2e` は何度動かしても構いません。DB と利用者がすでにあれば、そのまま使います。テストが作るルームは、名前に時刻を付けて毎回別のものにします。
-   - 8001番と 4173番で、すでにサーバーが動いていると、Playwright はそれをそのまま使います（CI では使わず、ポートが空いていなければ失敗します）。別の設定で動かしたサーバーが残っていると失敗するので、止めてから動かします。
+   - Playwright は、8001番と 4173番で動いているサーバーを使い回しません。手元でも CI でも、どちらかのポートが使われていると `make e2e` は失敗します。`make run`（8000番）は止めなくて構いませんが、`vite preview` などで 4173番を使っているときは、止めてから動かします。
    - 結果のレポートは `frontend/playwright-report/` に出ます。`frontend/` で `pnpm exec playwright show-report` を実行すると、ブラウザで見られます。
 9. API を変えたら、リポジトリ直下で `make api` を実行します。`api/openapi.yaml` を出力し、フロントエンドの型（`frontend/src/api/schema.d.ts`）を作り直します。リクエストの本文は `RoomRequest`、レスポンスは `Room` のように別の型になります。
 
