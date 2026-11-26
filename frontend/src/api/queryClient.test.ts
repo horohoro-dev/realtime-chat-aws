@@ -45,7 +45,10 @@ describe("createQueryClient の 403 の扱い", () => {
 
     await failQuery(client, ["rooms", "list"], createApiError("失敗", 403));
 
-    expect(invalidate).toHaveBeenCalledExactlyOnceWith({ queryKey: meKeys.all });
+    expect(invalidate).toHaveBeenCalledExactlyOnceWith(
+      { queryKey: meKeys.all },
+      { cancelRefetch: false },
+    );
   });
 
   it("meKeys のクエリ自身が 403 で失敗したときは、無効にしない", async () => {
@@ -76,7 +79,10 @@ describe("createQueryClient の 403 の扱い", () => {
         .execute(undefined),
     ).rejects.toBe(error);
 
-    expect(invalidate).toHaveBeenCalledExactlyOnceWith({ queryKey: meKeys.all });
+    expect(invalidate).toHaveBeenCalledExactlyOnceWith(
+      { queryKey: meKeys.all },
+      { cancelRefetch: false },
+    );
   });
 
   it("ミューテーションが 403 以外で失敗したときは、無効にしない", async () => {

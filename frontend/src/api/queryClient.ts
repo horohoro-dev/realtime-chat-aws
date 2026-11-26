@@ -22,21 +22,24 @@ function isForbidden(error: unknown): boolean {
   return isApiError(error) && error.status === 403;
 }
 
-// API はセッションが切れると 403 を返す。/api/me/ を取り直し、それも 403 なら RootLayout がログインの案内を出す
+// DRF の SessionAuthentication は、未ログインと CSRF の失敗をどちらも 403 で返す。
+// どちらかを見分けるため、403 のたびに /api/me/ を取り直す
 export function createQueryClient(queryDefaults: DefaultOptions["queries"] = {}): QueryClient {
-  const recheckLogin = () => client.invalidateQueries({ queryKey: meKeys.all });
+  const recheckLogin = () =>
+    client.invalidateQueries({ queryKey: meKeys.all }, { cancelRefetch: false });
   const client: QueryClient = new QueryClient({
     queryCache: new QueryCache({
-      onError: async (error, query) => {
-        if (isForbidden(error) && !matchQuery({ queryKey: meKeys.all }, query)) {
-          await recheckLogin();
+      onError: (error, query) => {
+        if (isForbidden(error) && !matchQuery({ queryKey: meKeys.all, exact: true }, query)) {
+          void recheckLogin();
         }
       },
     }),
     mutationCache: new MutationCache({
-      onError: async (error) => {
+      // ミューテーションの失敗の表示を、/api/me/ の取り直しの完了まで待たせない
+      onError: (error) => {
         if (isForbidden(error)) {
-          await recheckLogin();
+          void recheckLogin();
         }
       },
     }),
