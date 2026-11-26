@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { client } from "../client.ts";
 import { createApiError } from "../errors.ts";
+import { fieldErrorMessages } from "../fieldErrors.ts";
 import type { components } from "../schema.d.ts";
 import { roomKeys } from "./rooms.ts";
 
@@ -18,18 +19,6 @@ const MESSAGES_REFETCH_INTERVAL_MS = 3000;
 export const messageKeys = {
   list: (roomId: number) => [...roomKeys.detail(roomId), "messages"] as const,
 };
-
-function isStringArray(value: unknown): value is string[] {
-  return Array.isArray(value) && value.every((item) => typeof item === "string");
-}
-
-// DRF は入力の誤りを {"項目名": ["メッセージ", ...]} の形で返す
-function toFieldErrors(body: unknown): MessageFieldErrors {
-  if (typeof body !== "object" || body === null || !("body" in body)) {
-    return {};
-  }
-  return isStringArray(body.body) && body.body.length > 0 ? { body: body.body } : {};
-}
 
 // API は最新の50件を古い順に返す
 export function useMessages(roomId: number) {
@@ -60,9 +49,9 @@ export function useSendMessage(roomId: number) {
         params: { path: { room_id: roomId } },
         body,
       });
-      const errors = response.status === 400 ? toFieldErrors(error) : {};
-      if (errors.body !== undefined) {
-        return { status: "invalid", errors };
+      const messages = response.status === 400 ? fieldErrorMessages(error, "body") : undefined;
+      if (messages !== undefined) {
+        return { status: "invalid", errors: { body: messages } };
       }
       if (data === undefined) {
         throw createApiError(

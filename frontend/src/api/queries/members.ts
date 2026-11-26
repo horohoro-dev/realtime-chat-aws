@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { client } from "../client.ts";
 import { createApiError } from "../errors.ts";
+import { fieldErrorMessages } from "../fieldErrors.ts";
 import type { components } from "../schema.d.ts";
 import { roomKeys } from "./rooms.ts";
 
@@ -16,20 +17,6 @@ export type InviteMemberResult =
 export const memberKeys = {
   list: (roomId: number) => [...roomKeys.detail(roomId), "members"] as const,
 };
-
-function isStringArray(value: unknown): value is string[] {
-  return Array.isArray(value) && value.every((item) => typeof item === "string");
-}
-
-// DRF は入力の誤りを {"項目名": ["メッセージ", ...]} の形で返す
-function toFieldErrors(body: unknown): MemberFieldErrors {
-  if (typeof body !== "object" || body === null || !("username" in body)) {
-    return {};
-  }
-  return isStringArray(body.username) && body.username.length > 0
-    ? { username: body.username }
-    : {};
-}
 
 // API はメンバーを加わった順に返す
 export function useMembers(roomId: number) {
@@ -59,9 +46,9 @@ export function useInviteMember(roomId: number) {
         params: { path: { room_id: roomId } },
         body,
       });
-      const errors = response.status === 400 ? toFieldErrors(error) : {};
-      if (errors.username !== undefined) {
-        return { status: "invalid", errors };
+      const messages = response.status === 400 ? fieldErrorMessages(error, "username") : undefined;
+      if (messages !== undefined) {
+        return { status: "invalid", errors: { username: messages } };
       }
       if (data === undefined) {
         throw createApiError(
@@ -71,10 +58,9 @@ export function useInviteMember(roomId: number) {
       }
       return { status: "invited", member: data };
     },
-    onSuccess: async (result) => {
-      if (result.status === "invited") {
-        await queryClient.invalidateQueries({ queryKey: memberKeys.list(roomId) });
-      }
+    // 「すでにメンバー」の 400 は、ほかの人の招待で一覧が古くなっているときにも返るので、どちらでも取り直す
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: memberKeys.list(roomId) });
     },
   });
 }

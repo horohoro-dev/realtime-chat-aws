@@ -367,6 +367,32 @@ describe("メンバー", () => {
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
+  it("すでにメンバーの 400 のときも、一覧を取り直す", async () => {
+    const receivePost = vi.fn();
+    server.use(
+      http.get("/api/rooms/3/members/", () =>
+        HttpResponse.json(
+          receivePost.mock.calls.length > 0 ? [aliceMember, carolMember] : [aliceMember],
+        ),
+      ),
+      http.post("/api/rooms/3/members/", () => {
+        receivePost();
+        return HttpResponse.json(
+          { username: ["すでにこのルームのメンバーです。"] },
+          { status: 400 },
+        );
+      }),
+    );
+
+    renderRoute("/rooms/3");
+    await screen.findByRole("list", { name: "メンバー" });
+    await submitUsername("carol");
+
+    expect(await screen.findByText("すでにこのルームのメンバーです。")).toBeInTheDocument();
+    const list = screen.getByRole("list", { name: "メンバー" });
+    expect(await within(list).findByText("carol")).toBeInTheDocument();
+  });
+
   it("400 以外の招待の失敗なら、エラーの Alert を出す", async () => {
     server.use(http.post("/api/rooms/3/members/", () => new HttpResponse(null, { status: 500 })));
 
