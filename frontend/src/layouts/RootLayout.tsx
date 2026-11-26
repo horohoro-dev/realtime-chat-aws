@@ -55,9 +55,11 @@ function AppBar({ username }: { username: string | undefined }) {
         </Link>
       </h1>
       {username === undefined ? null : (
-        <p className="flex items-center gap-2 text-sm text-white/85">
+        <p className="flex min-w-0 items-center gap-2 text-sm text-white/85">
           <Avatar username={username} size="sm" />
-          <span className="sr-only sm:not-sr-only">{username} でログイン中</span>
+          <span className="sr-only min-w-0 sm:not-sr-only">
+            <span className="block truncate">{username} でログイン中</span>
+          </span>
         </p>
       )}
     </div>
