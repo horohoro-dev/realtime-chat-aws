@@ -1,4 +1,4 @@
-import { fireEvent, screen, within } from "@testing-library/react";
+import { act, fireEvent, screen, within } from "@testing-library/react";
 import { HttpResponse, http } from "msw";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { renderRoute } from "../test/renderRoute.tsx";
@@ -28,6 +28,7 @@ const carolMember = { user: carol, joined_at: "2026-11-04T09:00:00Z" };
 beforeEach(() => {
   server.use(
     http.get("/api/me/", () => HttpResponse.json(alice)),
+    http.get("/api/rooms/", () => HttpResponse.json([room])),
     http.get("/api/rooms/3/", () => HttpResponse.json(room)),
     http.get("/api/rooms/3/members/", () => HttpResponse.json([aliceMember])),
   );
@@ -57,19 +58,19 @@ async function expectRoomNotFound() {
   expect(
     await screen.findByRole("heading", { level: 2, name: "ルームが見つかりません" }),
   ).toBeInTheDocument();
-  expect(screen.getByRole("link", { name: "ルームの一覧へ戻る" })).toHaveAttribute("href", "/");
+  expect(screen.getByRole("link", { name: "ルームの一覧に戻る" })).toHaveAttribute("href", "/");
   expect(screen.queryByRole("alert")).not.toBeInTheDocument();
 }
 
 async function submitBody(body: string) {
   const input = await screen.findByRole("textbox", { name: "メッセージ" });
   fireEvent.change(input, { target: { value: body } });
-  fireEvent.click(screen.getByRole("button", { name: "送信する" }));
+  fireEvent.click(screen.getByRole("button", { name: "送信" }));
   return input;
 }
 
 describe("チャット", () => {
-  it("ルームの名前と、メッセージの送った人、本文、日時を出す", async () => {
+  it("ルームの名前と、メッセージの送った人、本文、時刻、日付の区切りを出す", async () => {
     server.use(
       http.get("/api/rooms/3/messages/", () => HttpResponse.json([firstMessage, secondMessage])),
     );
@@ -81,13 +82,59 @@ describe("チャット", () => {
       "listitem",
     );
     expect(items).toHaveLength(2);
-    expect(items[0]).toHaveTextContent("alice");
+    expect(items[0]).toHaveTextContent("あなた");
     expect(items[0]).toHaveTextContent("おはようございます");
+    expect(items[0]).toHaveTextContent("2026年11月3日(火)");
     expect(items[1]).toHaveTextContent("bob");
     expect(items[1]).toHaveTextContent("今日もよろしく");
+    expect(items[1]).not.toHaveTextContent("2026年11月3日");
     const time = items[0]?.querySelector("time");
     expect(time).toHaveAttribute("dateTime", "2026-11-03T09:00:00Z");
-    expect(time).toHaveTextContent("2026/11/03");
+    expect(time).toHaveTextContent("9:00");
+  });
+
+  it("自分の発言は右寄せ（self）、ほかの人の発言は左寄せ（other）で、ほかの人には名前を出す", async () => {
+    server.use(
+      http.get("/api/rooms/3/messages/", () => HttpResponse.json([firstMessage, secondMessage])),
+    );
+
+    renderRoute("/rooms/3");
+
+    const items = within(await screen.findByRole("list", { name: "メッセージ" })).getAllByRole(
+      "listitem",
+    );
+    expect(items[0]).toHaveAttribute("data-author", "self");
+    expect(items[0]).not.toHaveTextContent("alice");
+    expect(items[1]).toHaveAttribute("data-author", "other");
+    expect(items[1]).toHaveTextContent("bob");
+  });
+
+  it("同じ人が5分以内に続けて送ったメッセージは、名前を最初の1件にだけ見えるように出す", async () => {
+    const followUp = {
+      ...secondMessage,
+      id: 12,
+      body: "資料も見ます",
+      created_at: "2026-11-03T09:07:00Z",
+    };
+    const later = {
+      ...secondMessage,
+      id: 13,
+      body: "戻りました",
+      created_at: "2026-11-03T09:30:00Z",
+    };
+    server.use(
+      http.get("/api/rooms/3/messages/", () =>
+        HttpResponse.json([firstMessage, secondMessage, followUp, later]),
+      ),
+    );
+
+    renderRoute("/rooms/3");
+
+    const list = await screen.findByRole("list", { name: "メッセージ" });
+    const visibleNames = within(list)
+      .getAllByText("bob")
+      .filter((element) => !element.classList.contains("sr-only"));
+    expect(visibleNames).toHaveLength(2);
   });
 
   it("メッセージがないときは、その旨を出す", async () => {
@@ -95,7 +142,7 @@ describe("チャット", () => {
 
     renderRoute("/rooms/3");
 
-    expect(await screen.findByText("メッセージはまだありません。")).toBeInTheDocument();
+    expect(await screen.findByText("まだメッセージはありません")).toBeInTheDocument();
   });
 
   it("メッセージの一覧を3秒ごとに取り直す", async () => {
@@ -140,7 +187,8 @@ describe("チャット", () => {
     await screen.findByText("おはようございます");
     const input = await submitBody("今日もよろしく");
 
-    expect(await screen.findByText("今日もよろしく")).toBeInTheDocument();
+    const list = screen.getByRole("list", { name: "メッセージ" });
+    expect(await within(list).findByText("今日もよろしく")).toBeInTheDocument();
     expect(receivePost).toHaveBeenCalledExactlyOnceWith({ body: "今日もよろしく" });
     expect(receiveGet.mock.calls.length).toBeGreaterThanOrEqual(2);
     expect(input).toHaveValue("");
@@ -172,7 +220,7 @@ describe("チャット", () => {
     postResponse.resolve();
 
     await vi.waitFor(() => {
-      expect(screen.getByRole("button", { name: "送信する" })).not.toHaveAttribute("aria-disabled");
+      expect(screen.getByRole("button", { name: "送信" })).not.toHaveAttribute("aria-disabled");
     });
     expect(receivePost).toHaveBeenCalledExactlyOnceWith({ body: "今日もよろしく" });
     expect(input).toHaveValue("次の本文");
@@ -200,7 +248,7 @@ describe("チャット", () => {
       expect(input).toHaveValue("");
     });
     await vi.waitFor(() => {
-      expect(screen.getByRole("button", { name: "送信する" })).not.toHaveAttribute("aria-disabled");
+      expect(screen.getByRole("button", { name: "送信" })).not.toHaveAttribute("aria-disabled");
     });
     expect(receivePost).toHaveBeenCalledExactlyOnceWith({ body: "今日もよろしく" });
   });
@@ -258,7 +306,7 @@ describe("チャット", () => {
     postResponse.resolve();
 
     await vi.waitFor(() => {
-      expect(screen.getByRole("button", { name: "送信する" })).not.toHaveAttribute("aria-disabled");
+      expect(screen.getByRole("button", { name: "送信" })).not.toHaveAttribute("aria-disabled");
     });
     expect(input).toHaveValue("了解");
   });
@@ -284,7 +332,7 @@ describe("チャット", () => {
     expect(input).not.toHaveAttribute("maxlength");
     expect(input).toHaveAttribute("aria-invalid", "true");
     expect(input).toHaveAccessibleDescription(
-      "この項目が2000文字より長くならないようにしてください。",
+      expect.stringContaining("この項目が2000文字より長くならないようにしてください。"),
     );
     expect(input).toHaveValue(longBody);
   });
@@ -302,6 +350,31 @@ describe("チャット", () => {
     expect(input).toHaveValue("こんにちは");
   });
 
+  it("Enter で送信し、Shift + Enter と変換中の Enter では送信しない", async () => {
+    const receivePost = vi.fn();
+    server.use(
+      http.get("/api/rooms/3/messages/", () => HttpResponse.json([])),
+      http.post("/api/rooms/3/messages/", async ({ request }) => {
+        receivePost(await request.json());
+        return HttpResponse.json({ ...secondMessage, sender: alice }, { status: 201 });
+      }),
+    );
+
+    renderRoute("/rooms/3");
+    const input = await screen.findByRole("textbox", { name: "メッセージ" });
+    fireEvent.change(input, { target: { value: "了解です" } });
+    fireEvent.keyDown(input, { key: "Enter", shiftKey: true });
+    fireEvent.keyDown(input, { key: "Enter", isComposing: true });
+    fireEvent.keyDown(input, { key: "Enter", keyCode: 229 });
+    expect(receivePost).not.toHaveBeenCalled();
+
+    fireEvent.keyDown(input, { key: "Enter" });
+
+    await vi.waitFor(() => {
+      expect(receivePost).toHaveBeenCalledExactlyOnceWith({ body: "了解です" });
+    });
+  });
+
   it("404 のときは「ルームが見つかりません」と一覧へのリンクを出す", async () => {
     server.use(
       http.get("/api/rooms/3/", () => HttpResponse.json({ detail: "Not found." }, { status: 404 })),
@@ -312,7 +385,7 @@ describe("チャット", () => {
     expect(
       await screen.findByRole("heading", { level: 2, name: "ルームが見つかりません" }),
     ).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "ルームの一覧へ戻る" })).toHaveAttribute("href", "/");
+    expect(screen.getByRole("link", { name: "ルームの一覧に戻る" })).toHaveAttribute("href", "/");
     expect(screen.queryByRole("textbox", { name: "メッセージ" })).not.toBeInTheDocument();
   });
 
@@ -329,7 +402,7 @@ describe("チャット", () => {
 
     renderRoute("/rooms/3");
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("ルームを取得できませんでした");
+    expect(await screen.findByRole("alert")).toHaveTextContent("ルームを読み込めませんでした");
   });
 
   it("メッセージの取得に失敗したら、エラーの Alert を出す", async () => {
@@ -337,7 +410,7 @@ describe("チャット", () => {
 
     renderRoute("/rooms/3");
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("メッセージを取得できませんでした");
+    expect(await screen.findByRole("alert")).toHaveTextContent("メッセージを読み込めませんでした");
   });
 
   it("送信が 404 で、ルームも 404 になったら、「ルームが見つかりません」を出す", async () => {
@@ -400,7 +473,7 @@ describe("チャット", () => {
 
     renderRoute("/rooms/3");
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("メッセージを取得できませんでした");
+    expect(await screen.findByRole("alert")).toHaveTextContent("メッセージを読み込めませんでした");
     await vi.advanceTimersByTimeAsync(6000);
     expect(receiveMessagesGet).toHaveBeenCalledOnce();
   });
@@ -430,8 +503,20 @@ describe("チャット", () => {
   });
 });
 
+async function openInviteDialog() {
+  fireEvent.click(await screen.findByRole("button", { name: "メンバーを招待" }));
+  return screen.findByRole("dialog", { name: "メンバーを招待" });
+}
+
+function closeDialog() {
+  fireEvent.click(screen.getByRole("button", { name: "閉じる" }));
+}
+
 async function submitUsername(username: string) {
-  const input = await screen.findByRole("textbox", { name: "招待する利用者名" });
+  if (screen.queryByRole("dialog", { name: "メンバーを招待" }) === null) {
+    await openInviteDialog();
+  }
+  const input = await screen.findByRole("textbox", { name: "利用者名" });
   fireEvent.change(input, { target: { value: username } });
   fireEvent.click(screen.getByRole("button", { name: "招待する" }));
   return input;
@@ -442,7 +527,7 @@ describe("メンバー", () => {
     server.use(http.get("/api/rooms/3/messages/", () => HttpResponse.json([])));
   });
 
-  it("メンバーの利用者名を、加わった順に出す", async () => {
+  it("メンバーの利用者名を、加わった順に、人数と自分の印を付けて出す", async () => {
     server.use(
       http.get("/api/rooms/3/members/", () => HttpResponse.json([aliceMember, bobMember])),
     );
@@ -454,7 +539,48 @@ describe("メンバー", () => {
     );
     expect(items).toHaveLength(2);
     expect(items[0]).toHaveTextContent("alice");
+    expect(items[0]).toHaveTextContent("あなた");
     expect(items[1]).toHaveTextContent("bob");
+    expect(items[1]).not.toHaveTextContent("あなた");
+    expect(await screen.findByRole("complementary", { name: "メンバー 2人" })).toBeInTheDocument();
+  });
+
+  it("メンバーのボタンを押すと、メンバーの一覧のダイアログを開く", async () => {
+    server.use(
+      http.get("/api/rooms/3/members/", () => HttpResponse.json([aliceMember, bobMember])),
+    );
+
+    renderRoute("/rooms/3");
+    fireEvent.click(await screen.findByRole("button", { name: "メンバー（2人）" }));
+
+    const dialog = await screen.findByRole("dialog", { name: "メンバー" });
+    const items = within(within(dialog).getByRole("list", { name: "メンバー" })).getAllByRole(
+      "listitem",
+    );
+    expect(items).toHaveLength(2);
+  });
+
+  it("「メンバーを招待」を押すと、利用者名の入力欄にフォーカスしたダイアログを開き、閉じるとボタンにフォーカスを戻す", async () => {
+    renderRoute("/rooms/3");
+    const trigger = await screen.findByRole("button", { name: "メンバーを招待" });
+    act(() => {
+      trigger.focus();
+    });
+
+    const dialog = await openInviteDialog();
+    const input = within(dialog).getByRole("textbox", { name: "利用者名" });
+    await vi.waitFor(() => {
+      expect(input).toHaveFocus();
+    });
+
+    closeDialog();
+
+    await vi.waitFor(() => {
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    });
+    await vi.waitFor(() => {
+      expect(trigger).toHaveFocus();
+    });
   });
 
   it("招待すると POST を呼び、一覧を取り直して、入力欄を空にする", async () => {
@@ -477,11 +603,16 @@ describe("メンバー", () => {
     await screen.findByRole("list", { name: "メンバー" });
     const input = await submitUsername("carol");
 
-    const list = screen.getByRole("list", { name: "メンバー" });
-    expect(await within(list).findByText("carol")).toBeInTheDocument();
+    expect(await screen.findByRole("status")).toHaveTextContent("carol さんをメンバーに加えました");
     expect(receivePost).toHaveBeenCalledExactlyOnceWith({ username: "carol" });
-    expect(receiveGet).toHaveBeenCalledTimes(2);
+    await vi.waitFor(() => {
+      expect(receiveGet).toHaveBeenCalledTimes(2);
+    });
     expect(input).toHaveValue("");
+
+    closeDialog();
+    const list = await screen.findByRole("list", { name: "メンバー" });
+    expect(await within(list).findByText("carol")).toBeInTheDocument();
   });
 
   it("招待の途中にもう一度送っても POST は1回で、途中で打った次の利用者名は残す", async () => {
@@ -524,7 +655,8 @@ describe("メンバー", () => {
     );
 
     renderRoute("/rooms/3");
-    const input = await screen.findByRole("textbox", { name: "招待する利用者名" });
+    await openInviteDialog();
+    const input = await screen.findByRole("textbox", { name: "利用者名" });
     fireEvent.change(input, { target: { value: "carol" } });
     const form = input.closest("form") as HTMLFormElement;
     fireEvent.submit(form);
@@ -602,7 +734,8 @@ describe("メンバー", () => {
     await submitUsername("carol");
 
     expect(await screen.findByText("すでにこのルームのメンバーです。")).toBeInTheDocument();
-    const list = screen.getByRole("list", { name: "メンバー" });
+    closeDialog();
+    const list = await screen.findByRole("list", { name: "メンバー" });
     expect(await within(list).findByText("carol")).toBeInTheDocument();
   });
 
@@ -612,7 +745,7 @@ describe("メンバー", () => {
     renderRoute("/rooms/3");
     const input = await submitUsername("carol");
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("メンバーを招待できませんでした");
+    expect(await screen.findByRole("alert")).toHaveTextContent("招待できませんでした");
     expect(input).toHaveValue("carol");
   });
 
@@ -630,7 +763,7 @@ describe("メンバー", () => {
     await screen.findByRole("list", { name: "メンバー" });
     await submitUsername("carol");
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("メンバーを招待できませんでした");
+    expect(await screen.findByRole("alert")).toHaveTextContent("招待できませんでした");
     await vi.waitFor(() => {
       expect(receiveGet).toHaveBeenCalledTimes(2);
     });
@@ -670,7 +803,7 @@ describe("メンバー", () => {
 
     renderRoute("/rooms/3");
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("メンバーを取得できませんでした");
+    expect(await screen.findByRole("alert")).toHaveTextContent("メンバーを読み込めませんでした");
   });
 
   it("招待が 404 で、ルームも 404 になったら、「ルームが見つかりません」を出す", async () => {

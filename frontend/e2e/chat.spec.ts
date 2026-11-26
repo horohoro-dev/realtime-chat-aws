@@ -23,7 +23,7 @@ async function openLoggedInPage(context: BrowserContext, username: string): Prom
 
 async function sendMessage(page: Page, body: string) {
   await fillIn(page.getByRole("textbox", { name: "メッセージ" }), body);
-  await page.getByRole("button", { name: "送信する" }).click();
+  await page.getByRole("button", { name: "送信" }).click();
 }
 
 it("2人の利用者が同じルームでメッセージを送り合える", async ({ browser }) => {
@@ -39,13 +39,19 @@ it("2人の利用者が同じルームでメッセージを送り合える", asy
     const bob = await openLoggedInPage(bobContext, e2eUsers.bob);
 
     await alice.goto("/rooms/new");
-    await fillIn(alice.getByRole("textbox", { name: "ルームの名前" }), roomName);
-    await alice.getByRole("button", { name: "作成する" }).click();
+    await fillIn(alice.getByRole("textbox", { name: "ルーム名" }), roomName);
+    await alice.getByRole("button", { name: "ルームを作成" }).click();
     await expect(alice).toHaveURL(/\/rooms\/\d+$/);
     await expect(alice.getByRole("heading", { name: roomName })).toBeVisible();
 
-    await fillIn(alice.getByRole("textbox", { name: "招待する利用者名" }), e2eUsers.bob);
-    await alice.getByRole("button", { name: "招待する" }).click();
+    await alice.getByRole("button", { name: "メンバーを招待" }).click();
+    const inviteDialog = alice.getByRole("dialog", { name: "メンバーを招待" });
+    await fillIn(inviteDialog.getByRole("textbox", { name: "利用者名" }), e2eUsers.bob);
+    await inviteDialog.getByRole("button", { name: "招待する" }).click();
+    await expect(inviteDialog.getByRole("status")).toContainText(
+      `${e2eUsers.bob} さんをメンバーに加えました`,
+    );
+    await inviteDialog.getByRole("button", { name: "閉じる" }).click();
     await expect(alice.getByRole("list", { name: "メンバー" })).toContainText(e2eUsers.bob);
 
     await bob.goto("/");
@@ -56,6 +62,14 @@ it("2人の利用者が同じルームでメッセージを送り合える", asy
     await expect(bob.getByRole("list", { name: "メッセージ" })).toContainText(aliceMessage, {
       timeout: pollingTimeout,
     });
+    await expect(bob.getByRole("listitem").filter({ hasText: aliceMessage })).toHaveAttribute(
+      "data-author",
+      "other",
+    );
+    await expect(alice.getByRole("listitem").filter({ hasText: aliceMessage })).toHaveAttribute(
+      "data-author",
+      "self",
+    );
 
     await sendMessage(bob, bobMessage);
     await expect(alice.getByRole("list", { name: "メッセージ" })).toContainText(bobMessage, {
