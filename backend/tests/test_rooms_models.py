@@ -2,7 +2,7 @@ import pytest
 from django.db import IntegrityError, transaction
 from django.db.models import ProtectedError
 
-from apps.rooms.models import Membership, Message, Room
+from apps.rooms.models import MESSAGE_BODY_MAX_LENGTH, Membership, Message, Room
 
 
 @pytest.fixture
@@ -50,16 +50,17 @@ def test_deleting_room_cascades_to_memberships_and_messages(room, alice):
 
 
 @pytest.mark.django_db
-def test_message_body_of_2000_characters_is_saved(room, alice):
-    Message.objects.create(room=room, sender=alice, body="a" * 2000)
+def test_message_body_at_max_length_is_saved(room, alice):
+    body = "a" * MESSAGE_BODY_MAX_LENGTH
+    Message.objects.create(room=room, sender=alice, body=body)
 
-    assert Message.objects.get().body == "a" * 2000
+    assert Message.objects.get().body == body
 
 
 @pytest.mark.django_db
-def test_message_body_over_2000_characters_raises_integrity_error(room, alice):
+def test_message_body_over_max_length_raises_integrity_error(room, alice):
     with pytest.raises(IntegrityError), transaction.atomic():
-        Message.objects.create(room=room, sender=alice, body="a" * 2001)
+        Message.objects.create(room=room, sender=alice, body="a" * (MESSAGE_BODY_MAX_LENGTH + 1))
 
     assert not Message.objects.exists()
 
