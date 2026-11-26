@@ -28,6 +28,7 @@ def create_database_if_missing() -> bool:
         host=db["HOST"] or None,
         port=db["PORT"] or None,
         autocommit=True,
+        **db["OPTIONS"],
     ) as conn:
         exists = conn.execute(
             "SELECT 1 FROM pg_database WHERE datname = %s", [db["NAME"]]

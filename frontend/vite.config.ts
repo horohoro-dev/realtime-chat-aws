@@ -12,7 +12,6 @@ export default defineConfig({
     // dev と prd と同じく、画面と API を同じオリジンから配信してセッション Cookie と CSRF トークンを使う
     proxy: {
       "/api": {
-        // 転送先の Django のオリジン。環境変数がなければ runserver の既定のポート
         target: process.env.API_PROXY_TARGET ?? "http://localhost:8000",
         // Host を画面のオリジンのままにする。Django の CSRF の検査は Origin と Host が同じかを見る
         changeOrigin: false,

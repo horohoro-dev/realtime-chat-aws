@@ -38,7 +38,8 @@ export default defineConfig({
       cwd: "../backend",
       env: { DJANGO_SETTINGS_MODULE: "config.settings.e2e" },
       url: `${apiOrigin}/api/auth/login/`,
-      reuseExistingServer: !isCi,
+      // 動いている Django を使い回すと prepare_e2e が動かず、E2E の DB と利用者がそろわない
+      reuseExistingServer: false,
       stdout: "pipe",
       timeout: 120_000,
     },
