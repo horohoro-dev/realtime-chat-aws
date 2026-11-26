@@ -121,6 +121,7 @@ def test_list_and_create_return_404_for_non_member(client, alice, bob):
 
     assert client.get(f"/api/rooms/{room.id}/messages/").status_code == 404
     assert post_message(client, room, "hi").status_code == 404
+    assert post_message(client, room, "   ").status_code == 404
     assert Message.objects.count() == 1
 
 
@@ -131,6 +132,10 @@ def test_list_and_create_return_404_for_missing_room(client, alice):
     assert client.get("/api/rooms/999999/messages/").status_code == 404
     response = client.post(
         "/api/rooms/999999/messages/", {"body": "hi"}, content_type="application/json"
+    )
+    assert response.status_code == 404
+    response = client.post(
+        "/api/rooms/999999/messages/", {"body": ""}, content_type="application/json"
     )
     assert response.status_code == 404
 
