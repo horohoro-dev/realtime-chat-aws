@@ -13,6 +13,10 @@
     "./biome-plugins/no-set-state-in-effect.grit",
     "./biome-plugins/no-fetch-in-effect.grit",
     "./biome-plugins/no-manual-memo.grit",
+    "./biome-plugins/no-class.grit",
+    "./biome-plugins/no-let.grit",
+    "./biome-plugins/no-loop.grit",
+    "./biome-plugins/no-array-mutation.grit",
     {
       "path": "./biome-plugins/no-direct-fetch.grit",
       "includes": ["src/**", "!src/api/**"]
@@ -137,6 +141,9 @@
         },
         "noUselessFragments": "error",
         "useSimplifiedLogicExpression": "error"
+      },
+      "performance": {
+        "noJsxPropsBind": "off"
       },
       "nursery": {
         "noReactDirectStateMutation": "error",

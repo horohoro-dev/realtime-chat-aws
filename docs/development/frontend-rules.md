@@ -11,7 +11,7 @@
 | 仕組み | 置き場所 | 検査すること |
 |---|---|---|
 | Biome の組み込みのルール | `frontend/biome.json` の `linter` | React、TanStack Query、テスト、型を使う検査、import の制限など |
-| Biome のプラグイン | `frontend/biome-plugins/*.grit` | 組み込みのルールにない、この文書の2章と3章の決まり。GritQL（Biome がプラグインに使うコードの検索言語）で書く |
+| Biome のプラグイン | `frontend/biome-plugins/*.grit` | 組み込みのルールにない、この文書の2章、3章、4章の決まり。GritQL（Biome がプラグインに使うコードの検索言語）で書く |
 | TypeScript の型検査 | `frontend/tsconfig.json` | `strict` などの型の検査 |
 
 - Biome の警告も失敗に数えます（`biome ci --error-on-warnings`）。警告のまま残すことはしません。
@@ -69,11 +69,41 @@ API の応答は TanStack Query のキャッシュに置き、コンポーネン
 React Compiler（コンポーネントとフックのメモ化をビルド時に自動で入れるツール）を使います。設定は `vite.config.ts` にあり、`@rolldown/plugin-babel` で `@vitejs/plugin-react` の `reactCompilerPreset()` を通します。開発サーバー、本番のビルド、Vitest のすべてで働きます。
 
 - `useMemo`、`useCallback`、`memo` は書きません。プラグイン `no-manual-memo.grit` が検出します。
+- コンポーネントの中で作った関数は、そのまま JSX の属性に渡します（`onSubmit={handleSubmit}`、`onPress={() => setOpen(true)}`）。描画のたびに関数を作り直さないための使い回しは、compiler が入れます。同じ問題を `useCallback` で防がせる Biome の `performance/noJsxPropsBind` は、React の domain を `all` にすると有効になりますが、`no-manual-memo.grit` とぶつかるので `biome.json` で切っています。
 - メモ化を細かく決める必要があるときだけ、7章のとおり理由を書いて抑止します。React の公式の文書が例に挙げているのは、Effect の依存に渡す値を安定させる場面です。
 - compiler が安全に最適化できないコード（描画中に ref を読み書きするなど）は、`nursery/useReactCompiler` が検出します。このルールは、React Compiler を検査だけのモードで動かしたものです。
 - 4章の決まり（props と state を書き換えない、フックを最上位で呼ぶなど）は、compiler が前提にしている React の決まりそのものです。破ると、そのコンポーネントは最適化されないか、正しく動きません。
-- props の配列やオブジェクトの中身を書き換えること（`items.push(1)` など）は、どのルールでも検出できません。レビューで確かめます。
+- 配列をその場で書き換えるメソッド（`items.push(1)` など）は、4.2のプラグイン `no-array-mutation.grit` が検出します。オブジェクトの項目への代入（`item.name = "a"`）は検出できないので、レビューで確かめます。
 - compiler の変換が原因で動きがおかしいと疑うときは、コンポーネントの本体の先頭に `"use no memo"` と書くと、そのコンポーネントを対象から外せます。外したままにするときは、理由をコメントに書きます。
+
+### 4.2 値を書き換えずに、新しい値を作る
+
+変数と配列を書き換えず、計算の結果を新しい値として作ります。React の state と props は書き換えてはいけない値で、書き換えない書き方にそろえておくと、state を直接書き換える間違いが起きにくくなります。どこで値が変わるかを追わずに読めるようにするためでもあります。
+
+| 書かないもの | 検出するプラグイン | 代わりの書き方 |
+|---|---|---|
+| `class` | `no-class.grit` | データは `type` とそれを受け取る関数、部品は関数コンポーネント |
+| `let`、`var` | `no-let.grit` | `const`。条件で変わる値は三項演算子か、値を return する関数で作る |
+| `for`、`for...of`、`for...in`、`while`、`do...while` | `no-loop.grit` | `map`、`filter`、`reduce`、`some`、`every`、`find`。オブジェクトは `Object.entries` で配列にする |
+| `push`、`pop`、`shift`、`unshift`、`splice`、`sort`、`reverse`、`fill`、`copyWithin` | `no-array-mutation.grit` | `[...items, item]`、`toSorted`、`toReversed`、`toSpliced`、`filter`、`with` |
+
+```tsx
+// 書かない
+let total = 0;
+for (const item of items) {
+  total += item.price;
+}
+const sorted = items;
+sorted.sort((a, b) => a.price - b.price);
+
+// 書く
+const total = items.reduce((sum, item) => sum + item.price, 0);
+const sorted = items.toSorted((a, b) => a.price - b.price);
+```
+
+- `no-array-mutation.grit` は呼び出し先の型を見ません。配列でない値の同じ名前のメソッド（React Router の履歴の `push` など）も検出します。正しいと判断したときは、7章のとおり理由を書いて抑止します。
+- ライブラリが `class` の継承を求める場合（`Error` を継承した独自のエラーなど）も、7章のとおり抑止します。エラーは、できるだけ `new Error("…", { cause })` で表します。
+- ループでしか書きにくい処理（途中で抜ける、長い配列で性能を測って問題が出たなど）は、7章のとおり理由を書いて抑止します。
 
 ## 5. UI の部品と見た目
 
@@ -118,3 +148,4 @@ useEffect(() => {
 - Biome「Linter Plugins」 https://biomejs.dev/linter/plugins/
 - Biome「noRestrictedImports」 https://biomejs.dev/linter/rules/no-restricted-imports/
 - Biome「useExhaustiveDependencies」 https://biomejs.dev/linter/rules/use-exhaustive-dependencies/
+- Biome「noJsxPropsBind」 https://biomejs.dev/linter/rules/no-jsx-props-bind/

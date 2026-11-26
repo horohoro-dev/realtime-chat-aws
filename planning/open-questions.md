@@ -1,7 +1,7 @@
 # まだ決めていないこと
 
 作成日：2026-11-25
-更新日：2026-11-25
+更新日：2026-11-26
 
 決めたら、決めた内容と理由を `docs/` の該当の文書か ADR に書き、未決定の表から消します。
 
@@ -20,3 +20,4 @@
 | Q5 | 独自ドメイン | (a) 取得する、(b) CloudFront の既定のドメイン | Cognito のカスタムドメインと ACM の証明書を見せるなら (a) が要る | Step 3 の前 |
 | Q6 | Slack のワークスペース | (a) 自分用に作る、(b) 通知はメールだけ | Slack 通知を見せるなら (a) | Step 7 の前 |
 | Q8 | アイコン画像をやるか | やる、やらない | インフラはほぼ変わらない。Step 9 の後の余力で決める | Step 9 の後 |
+| Q9 | 仮のログイン（`/api/auth/`）と管理画面（`/admin/`）を dev と prd でどう扱うか | (a) dev と prd の設定では URL に含めない、(b) 公開したまま、試行回数の制限を付ける（Django のログインに効く仕組みをアプリに入れる、または WAF のレートベースのルール）、(c) ALB か CloudFront でパスを遮断する | Step 1 の仮のログインと `/admin/` には、パスワードの試行回数の制限がない（[PR #44](https://github.com/horohoro-dev/realtime-chat-aws/pull/44) の CodeRabbit の指摘）。どちらも Django の `LoginView` で、DRF のビューではないので、DRF の throttle は効かない。Step 3 で Cognito のログインに置き換えれば `/api/auth/` は要らなくなる。WAF は Step 4 なので、Step 3 の dev には間に合わない。`/admin/` を運用に使うかも合わせて決める | Step 3 の前 |

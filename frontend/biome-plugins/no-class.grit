@@ -1,0 +1,12 @@
+// class の宣言と class 式を検出する。データは type と関数、部品は関数コンポーネントで書く。
+// ノードの種類で選ぶので、型パラメーター、extends、implements、abstract の有無にかかわらず検出する。
+or {
+  JsClassDeclaration(),
+  JsClassExpression(),
+  JsClassExportDefaultDeclaration()
+} as $class where {
+  register_diagnostic(
+    span = $class,
+    message = "class は書きません。データは type とそれを受け取る関数、部品は関数コンポーネントで書いてください（docs/development/frontend-rules.md の4.2）。"
+  )
+}

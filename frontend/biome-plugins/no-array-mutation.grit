@@ -1,0 +1,10 @@
+// 配列をその場で書き換えるメソッドの呼び出しを検出する。`data?.sort()`、`data.sort?.()` のようなオプショナルチェーンの呼び出しも含む。
+// 呼び出し先の型は見ないので、配列以外の同じ名前のメソッド（独自のオブジェクトの push など）も検出する。
+// `data["sort"]()` のような計算されたプロパティの呼び出しは検出しない。
+JsCallExpression(callee = JsStaticMemberExpression(member = $method)) as $call where {
+  $method <: or { `push`, `pop`, `shift`, `unshift`, `splice`, `sort`, `reverse`, `fill`, `copyWithin` },
+  register_diagnostic(
+    span = $call,
+    message = "配列をその場で書き換えるメソッドは使いません。push はスプレッド（[...items, item]）、sort は toSorted、reverse は toReversed、splice は toSpliced か filter で、新しい配列を作ってください（docs/development/frontend-rules.md の4.2）。"
+  )
+}

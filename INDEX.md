@@ -29,7 +29,7 @@ realtime-chat-aws/
 ├── .claude/
 │   ├── settings.json             # 許可と拒否のコマンド、フック
 │   ├── hooks/
-│   │   ├── session-start.sh      # クラウドセッションで uv と pnpm の依存を入れ、CodeRabbit CLI にログインする
+│   │   ├── session-start.sh      # クラウドセッションで uv と pnpm の依存を入れる
 │   │   ├── check-history-comments.py  # 経緯を書いたコメントを指摘する
 │   │   ├── lint-edited-file.py   # 編集したファイルを整形し、残った lint の違反を返す
 │   │   └── check-before-stop.py  # 応答を終える前に lint と型検査を動かし、失敗なら直させる
@@ -41,7 +41,8 @@ realtime-chat-aws/
 │   ├── roadmap.md                # Step ごとの作業計画
 │   ├── adr/                      # ADR。README.md に一覧と書き方
 │   ├── design/
-│   │   └── architecture.md       # AWS 構成の全体像と、論点ごとの方針
+│   │   ├── architecture.md       # AWS 構成の全体像と、論点ごとの方針
+│   │   └── step1-app.md          # Step 1 のアプリのモデル、API、画面、仮のログイン
 │   ├── development/
 │   │   ├── contributing.md       # ブランチの運用、PR とレビュー、人に見せる前の検査
 │   │   ├── frontend-rules.md     # React などの書き方の決まりと、Biome のルールの意図
@@ -57,7 +58,7 @@ realtime-chat-aws/
 │   ├── Makefile                  # mk/python.mk と mk/aws.mk を include。run、migrate、schema など
 │   ├── pyproject.toml、uv.lock   # 依存と、Ruff と pytest の設定
 │   ├── manage.py
-│   ├── config/settings/          # base.py、local.py、test.py
+│   ├── config/settings/          # base.py、local.py、test.py、e2e.py
 │   ├── apps/                     # （予定）機能ごとの Django のアプリ
 │   └── tests/
 │
@@ -69,7 +70,7 @@ realtime-chat-aws/
 │   ├── biome.json                # 整形とリントの設定（docs/development/frontend-rules.md）
 │   ├── biome-plugins/            # Biome の独自ルール（GritQL）
 │   ├── vite.config.ts            # Vite と Vitest の設定
-│   ├── playwright.config.ts      # E2E テストの設定。ビルドした画面を vite preview で配信して動かす
+│   ├── playwright.config.ts      # E2E テストの設定。Django の開発サーバーと、ビルドした画面の vite preview を起動して動かす
 │   ├── e2e/                      # Playwright の E2E テスト
 │   └── src/
 │       └── api/schema.d.ts       # api/openapi.yaml から生成した API の型。Biome の検査の対象外
