@@ -1,8 +1,10 @@
 from django.db import transaction
+from django.shortcuts import get_object_or_404
+from django.utils.functional import cached_property
 from rest_framework import generics
 
 from apps.rooms.models import Membership, Room
-from apps.rooms.serializers import RoomSerializer
+from apps.rooms.serializers import MemberSerializer, RoomSerializer
 
 
 def member_rooms(user):
@@ -27,3 +29,23 @@ class RoomDetailView(generics.RetrieveAPIView):
 
     def get_queryset(self):
         return member_rooms(self.request.user)
+
+
+class MemberListCreateView(generics.ListCreateAPIView):
+    serializer_class = MemberSerializer
+
+    @cached_property
+    def room(self):
+        return get_object_or_404(member_rooms(self.request.user), pk=self.kwargs["room_id"])
+
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context["room"] = self.room
+        return context
+
+    def get_queryset(self):
+        return (
+            Membership.objects.filter(room=self.room)
+            .select_related("user")
+            .order_by("joined_at", "id")
+        )
