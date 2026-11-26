@@ -19,7 +19,8 @@ function MeStatus() {
       </p>
     );
   }
-  if (me.isError) {
+  // 取り直しが失敗しても、前に取れた利用者の情報があれば画面を出したままにする
+  if (me.data === undefined) {
     return (
       <Alert tone="error">
         利用者の情報を取得できませんでした。時間をおいて、ページを読み込み直してください。

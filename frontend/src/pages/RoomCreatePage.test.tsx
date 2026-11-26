@@ -102,4 +102,27 @@ describe("ルームの作成", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("ルームを作成できませんでした");
     expect(input).not.toHaveAttribute("aria-invalid");
   });
+
+  it("セッションが切れて作成が 403 になったら、ログインの画面へのリンクを出す", async () => {
+    const receiveMe = vi.fn();
+    server.use(
+      http.get("/api/me/", () => {
+        receiveMe();
+        return receiveMe.mock.calls.length === 1
+          ? HttpResponse.json(alice)
+          : new HttpResponse(null, { status: 403 });
+      }),
+      http.post("/api/rooms/", () => new HttpResponse(null, { status: 403 })),
+    );
+
+    renderRoute("/rooms/new");
+    await submitName("読書会");
+
+    expect(await screen.findByRole("link", { name: "ログインする" })).toHaveAttribute(
+      "href",
+      `/api/auth/login/?next=${encodeURIComponent("/rooms/new")}`,
+    );
+    expect(screen.queryByRole("textbox", { name: "ルームの名前" })).not.toBeInTheDocument();
+    expect(receiveMe).toHaveBeenCalledTimes(2);
+  });
 });
