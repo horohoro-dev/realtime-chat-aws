@@ -1,6 +1,6 @@
 import pytest
 
-from apps.rooms.models import Membership, Message, Room
+from apps.rooms.models import MESSAGE_BODY_MAX_LENGTH, Membership, Message, Room
 
 
 @pytest.fixture
@@ -111,6 +111,18 @@ def test_create_rejects_invalid_body(client, alice, body):
     assert response.status_code == 400
     assert "body" in response.json()
     assert not Message.objects.exists()
+
+
+@pytest.mark.django_db
+def test_create_over_max_length_reports_max_length_error_only(client, alice):
+    room = make_room("general", alice)
+    client.force_login(alice)
+
+    response = post_message(client, room, "a" * (MESSAGE_BODY_MAX_LENGTH + 1))
+
+    assert response.json() == {
+        "body": ["この項目が2000文字より長くならないようにしてください。"],
+    }
 
 
 @pytest.mark.django_db
