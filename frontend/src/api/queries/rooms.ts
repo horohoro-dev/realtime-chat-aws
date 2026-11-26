@@ -25,7 +25,7 @@ function toFieldErrors(body: unknown): RoomFieldErrors {
   if (typeof body !== "object" || body === null || !("name" in body)) {
     return {};
   }
-  return isStringArray(body.name) ? { name: body.name } : {};
+  return isStringArray(body.name) && body.name.length > 0 ? { name: body.name } : {};
 }
 
 export function useRooms() {
@@ -41,14 +41,15 @@ export function useRooms() {
   });
 }
 
-// 400 は画面で入力欄に出すため、例外にせず invalid として返す
+// 400 の name の誤りは、項目ごとの誤りとして返す
 export function useCreateRoom() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (body: RoomRequest): Promise<CreateRoomResult> => {
       const { data, error, response } = await client.POST("/api/rooms/", { body });
-      if (response.status === 400) {
-        return { status: "invalid", errors: toFieldErrors(error) };
+      const errors = response.status === 400 ? toFieldErrors(error) : {};
+      if (errors.name !== undefined) {
+        return { status: "invalid", errors };
       }
       if (data === undefined) {
         throw new Error(`POST /api/rooms/ が失敗しました（${response.status}）`);

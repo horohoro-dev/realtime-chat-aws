@@ -1,6 +1,6 @@
-import { screen } from "@testing-library/react";
+import { fireEvent, screen } from "@testing-library/react";
 import { HttpResponse, http } from "msw";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderRoute } from "../test/renderRoute.tsx";
 import { server } from "../test/server.ts";
 
@@ -29,6 +29,40 @@ describe("ルームの一覧", () => {
       "href",
       "/rooms/new",
     );
+  });
+
+  it("ルームのリンクを押すと、React Router の遷移でチャットの画面へ移る", async () => {
+    const receiveMe = vi.fn();
+    server.use(
+      http.get("/api/me/", () => {
+        receiveMe();
+        return HttpResponse.json(alice);
+      }),
+      http.get("/api/rooms/", () =>
+        HttpResponse.json([
+          { id: 3, name: "雑談", created_by: alice, created_at: "2026-11-02T09:00:00Z" },
+        ]),
+      ),
+    );
+
+    renderRoute("/");
+    const loggedIn = await screen.findByText("alice でログイン中");
+    fireEvent.click(await screen.findByRole("link", { name: "雑談" }));
+
+    expect(await screen.findByRole("heading", { level: 2, name: "ルーム 3" })).toBeInTheDocument();
+    expect(screen.getByText("alice でログイン中")).toBe(loggedIn);
+    expect(receiveMe).toHaveBeenCalledOnce();
+  });
+
+  it("「ルームを作る」を押すと、React Router の遷移で作成の画面へ移る", async () => {
+    server.use(http.get("/api/rooms/", () => HttpResponse.json([])));
+
+    renderRoute("/");
+    fireEvent.click(await screen.findByRole("link", { name: "ルームを作る" }));
+
+    expect(
+      await screen.findByRole("heading", { level: 2, name: "ルームの作成" }),
+    ).toBeInTheDocument();
   });
 
   it("ルームがないときは、その旨と作成の画面へのリンクを出す", async () => {

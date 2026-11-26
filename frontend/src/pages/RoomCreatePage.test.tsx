@@ -61,4 +61,17 @@ describe("ルームの作成", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent("ルームを作成できませんでした");
   });
+
+  it.each([
+    ["detail", { detail: "入力が正しくありません。" }],
+    ["non_field_errors", { non_field_errors: ["入力が正しくありません。"] }],
+  ])("name の誤りがない 400（%s）なら、エラーの Alert を出す", async (_label, body) => {
+    server.use(http.post("/api/rooms/", () => HttpResponse.json(body, { status: 400 })));
+
+    renderRoute("/rooms/new");
+    const input = await submitName("読書会");
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("ルームを作成できませんでした");
+    expect(input).not.toHaveAttribute("aria-invalid");
+  });
 });
