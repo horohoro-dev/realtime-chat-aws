@@ -43,13 +43,22 @@ describe("ルームの一覧", () => {
           { id: 3, name: "雑談", created_by: alice, created_at: "2026-11-02T09:00:00Z" },
         ]),
       ),
+      http.get("/api/rooms/3/", () =>
+        HttpResponse.json({
+          id: 3,
+          name: "雑談",
+          created_by: alice,
+          created_at: "2026-11-02T09:00:00Z",
+        }),
+      ),
+      http.get("/api/rooms/3/messages/", () => HttpResponse.json([])),
     );
 
     renderRoute("/");
     const loggedIn = await screen.findByText("alice でログイン中");
     fireEvent.click(await screen.findByRole("link", { name: "雑談" }));
 
-    expect(await screen.findByRole("heading", { level: 2, name: "ルーム 3" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 2, name: "雑談" })).toBeInTheDocument();
     expect(screen.getByText("alice でログイン中")).toBe(loggedIn);
     expect(receiveMe).toHaveBeenCalledOnce();
   });
