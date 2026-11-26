@@ -91,7 +91,9 @@ function OtherRow({ row }: { row: MessageRow }) {
       </span>
       <div className="min-w-0">
         {row.startsGroup ? (
-          <p className="text-sumi mb-1 text-[0.8125rem] font-semibold">{sender.username}</p>
+          <p className="text-sumi mb-1 text-[0.8125rem] font-semibold [overflow-wrap:anywhere]">
+            {sender.username}
+          </p>
         ) : (
           <span className="sr-only">{sender.username}</span>
         )}

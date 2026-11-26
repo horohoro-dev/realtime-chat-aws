@@ -18,6 +18,8 @@ reviews:
     - "!**/pnpm-lock.yaml"
     - "!**/uv.lock"
     - "!**/.terraform.lock.hcl"
+    # 取り込んだ skill。上流のファイルを書き換えずに置いている（THIRD_PARTY_NOTICES.md）
+    - "!.claude/skills/impeccable/**"
 
   path_instructions:
     - path: "**"
