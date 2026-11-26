@@ -35,7 +35,7 @@ lint-infra: ## インフラの検査（terraform fmt、tflint）。AWS には接
 		terraform fmt -check -recursive infra && tflint --chdir=infra --recursive; \
 	else echo "infra/ がないので lint-infra を飛ばします"; fi
 
-e2e: ## E2E テスト（Playwright）
+e2e: ## E2E テスト（Playwright）。DB は E2E_DATABASE_URL（既定は localhost:5432 の e2e）
 	$(MAKE) -C frontend e2e
 
 api: ## API 定義（api/openapi.yaml）を出力し、フロントエンドの型を作り直す

@@ -30,6 +30,7 @@ uv run python manage.py runserver
 |---|---|---|
 | `config/settings/local.py` | 開発者の PC | `manage.py` の既定 |
 | `config/settings/test.py` | 自動テスト | `pyproject.toml` の pytest の設定 |
+| `config/settings/e2e.py` | E2E テスト（Playwright）の Django の開発サーバー。`local.py` に `apps.e2e`（`prepare_e2e` のコマンド）と E2E の DB を足す | `frontend/playwright.config.ts` の `webServer` |
 
 ## 検査とテスト
 
