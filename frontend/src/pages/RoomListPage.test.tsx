@@ -120,4 +120,26 @@ describe("ルームの一覧", () => {
     );
     expect(receiveRooms).toHaveBeenCalledOnce();
   });
+
+  it("画面を開いたあとにセッションが切れたら、ログインの画面へのリンクを出す", async () => {
+    const receiveMe = vi.fn();
+    server.use(
+      http.get("/api/me/", () => {
+        receiveMe();
+        return receiveMe.mock.calls.length === 1
+          ? HttpResponse.json(alice)
+          : new HttpResponse(null, { status: 403 });
+      }),
+      http.get("/api/rooms/", () => new HttpResponse(null, { status: 403 })),
+    );
+
+    renderRoute("/");
+
+    expect(await screen.findByRole("link", { name: "ログインする" })).toHaveAttribute(
+      "href",
+      `/api/auth/login/?next=${encodeURIComponent("/")}`,
+    );
+    expect(screen.queryByRole("heading", { level: 2 })).not.toBeInTheDocument();
+    expect(receiveMe).toHaveBeenCalledTimes(2);
+  });
 });
